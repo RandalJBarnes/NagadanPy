@@ -1,0 +1,131 @@
+\documentclass{article}
+\input{preamble}
+
+\newcommand{\version}{Draft: 02 April 2020}
+
+\lhead{\scriptsize}
+\chead{\scriptsize}
+\rhead{\scriptsize \thepage}
+
+\lfoot{\scriptsize}
+\cfoot{\scriptsize}
+\rfoot{\scriptsize \version}
+
+
+%==============================================================================
+\begin{document}
+%==============================================================================
+
+We define the Oneka-type regional flow model by the following discharge potential:
+%
+\begin{equation}\label{1}
+    \Phi(x,y) = A x^2 + B y^2 + C xy + Dx + Ey + F
+\end{equation}
+%
+Equation~\eqref{1} is a quadratic form in real variables. We define $z$ and $\bar{z}$ as
+%
+\begin{equation}\label{2}
+    z = x + i y \qquad \qquad \bar{z} = x - i y
+\end{equation}
+%
+Inverting yields
+%
+\begin{equation}\label{3}
+    x = \frac{z + \bar{z}}{2} \qquad \qquad y = \frac{z - \bar{z}}{2i}
+\end{equation}
+%
+Substituting \eqref{3} into \eqref{1} yields
+%
+\begin{equation}\label{4}
+    \Phi(z,\bar{z})
+    = A \left(\frac{z + \bar{z}}{2}\right)^2 + B \left(\frac{z - \bar{z}}{2i}\right)^2 +
+        C \left(\frac{z + \bar{z}}{2}\right)\left(\frac{z - \bar{z}}{2i}\right) +
+        D \left(\frac{z + \bar{z}}{2}\right) + E \left(\frac{z - \bar{z}}{2i}\right) + F
+\end{equation}
+%
+Rearranging \eqref{4} yields
+%
+\begin{equation}\label{5}
+    \Phi(z, \bar{z}) = a z^2 + b \bar{z}^2 + c z \bar{z} + d z + e \bar{z} + f
+\end{equation}
+%
+where
+%
+\begin{align}
+    a &= \frac{A - B - iC}{4} \\
+    b &= \frac{A - B + iC}{4} \\
+    c &= \frac{A + B}{2} \\
+    d &= \frac{D - iE}{2} \\
+    e &= \frac{D + iE}{2} \\
+    f &= F
+\end{align}
+%
+Alternatively,
+%
+\begin{equation}
+    \frac{1}{4}
+    \begin{bmatrix}
+    1& -1& -1i& 0& 0& 0 \\
+	1& -1& 1i& 0& 0& 0 \\
+	2& 2& 0& 0& 0& 0 \\
+	0& 0& 0& 2& -2i& 0 \\
+	0& 0& 0& 2& 2i& 0 \\
+	0& 0& 0& 0& 0& 4
+    \end{bmatrix}
+    \begin{bmatrix}A \\ B \\ C \\ D \\ E \\ F \end{bmatrix}
+    =
+    \begin{bmatrix}a \\ b \\ c \\ d \\ e \\ f \end{bmatrix}
+\end{equation}
+%
+Inverting yields
+%
+\begin{equation}
+    \begin{bmatrix}
+	1& 1& 1& 0& 0& 0 \\
+	-1& -1& 1& 0& 0& 0 \\
+	2i& -2i& 0& 0& 0& 0 \\
+	0& 0& 0& 1& 1& 0 \\
+	0& 0& 0& 1i& -1i& 0 \\
+	0& 0& 0& 0& 0& 1
+    \end{bmatrix}
+    \begin{bmatrix}a \\ b \\ c \\ d \\ e \\ f \end{bmatrix}
+    =
+    \begin{bmatrix}A \\ B \\ C \\ D \\ E \\ F \end{bmatrix}
+\end{equation}
+
+Note that $b = \bar{a}$ and $e = \bar{d}$, so \eqref{5} simplifies to
+%
+\begin{align}\label{7}
+    \Phi(z, \bar{z}) 
+    &= a z^2 + \bar{a} \bar{z}^2 + c z \bar{z} + d z + \bar{d} \bar{z} + f \\
+    &= \real{a z^2 + d z + f} + c z \bar{z}
+\end{align}
+%
+where $a$ and $d$ are complex, but $c$ and $f$ are real.
+
+%==============================================================================
+\end{document}
+%==============================================================================
+
+
+
+
+
+\newpage
+%------------------------------------------------
+\subsection{Regional recharge}
+%------------------------------------------------
+The regional recharge is given by
+%
+\begin{equation}\label{2.3}
+    N = -2 \left( A + B \right)
+\end{equation}
+%
+\begin{equation}\label{2.4}
+    \ev{N} = -2 \left( \ev{A} + \ev{B} \right)
+\end{equation}
+%
+\begin{equation}\label{2.5}
+    \var{N} = 4 \left( \var{A} + \var{B} + 2\cov{A,B} \right)
+\end{equation}
+

@@ -1,0 +1,195 @@
+%\NeedsTeXFormat{LaTeX2e}[1995/06/01]
+\input{preamble}
+
+\newcommand{\version}{Draft: 18 June 2017}
+
+\lhead{\scriptsize Barnes \& Soule}
+\chead{\scriptsize}
+\rhead{\scriptsize \thepage}
+
+\lfoot{\scriptsize Nagadan}
+\cfoot{\scriptsize}
+\rfoot{\scriptsize \version}
+
+\usepackage{color}
+\definecolor{red}{RGB}{255,0,0}
+
+\newcommand{\phit}{\phi_t}
+\newcommand{\phis}{\phi_s}
+
+
+
+%******************************************************************************
+\begin{document}
+%******************************************************************************
+
+%==============================================================================
+% Title block information
+%==============================================================================
+\title{Nagadan: Identification Influential Data using a Quadratic Discharge Potential Model}
+\author{
+Dr. Randal J. Barnes\\
+Department of Civil, Environmental, and Geo- Engineering\\
+University of Minnesota
+\and
+Richard Soule\\
+Source Water Protection\\
+Minnesota Department of Health\\
+}
+\date{\version}
+\maketitle
+\thispagestyle{plain}
+
+
+%==============================================================================
+\section{Introduction}
+%==============================================================================
+
+
+%==============================================================================
+\section{Geohydrologic Descriptors}
+%==============================================================================
+The underlying model for the regional flow is given by a quadratic function.
+%
+\begin{equation}\label{2.1}
+    \Phi(x,y) = A x^2 + B y^2 + C xy + Dx + Ey + F
+\end{equation}
+%
+The six model parameters, $\left\{ A, B, C, D, E, F \right\}$, are organized into a single column vector and modeled as stochastic variables.
+%
+\begin{equation}\label{2.2}
+    \mat{P} = \begin{bmatrix} A \\ B \\ C \\ D \\ E \\ F \end{bmatrix}
+\end{equation}
+%
+
+\newpage
+%------------------------------------------------
+\subsection{Regional recharge}
+%------------------------------------------------
+The regional recharge is given by
+%
+\begin{equation}\label{2.3}
+    N = -2 \left( A + B \right)
+\end{equation}
+%
+\begin{equation}\label{2.4}
+    \ev{N} = -2 \left( \ev{A} + \ev{B} \right)
+\end{equation}
+%
+\begin{equation}\label{2.5}
+    \var{N} = 4 \left( \var{A} + \var{B} + 2\cov{A,B} \right)
+\end{equation}
+
+
+%------------------------------------------------
+\subsection{Regional Discharge Components}
+%------------------------------------------------
+The regional discharge components, $Q_x$ and $Q_y$, are given by
+%
+\begin{align}
+    Q_x &= -D    \label{2.6}\\
+    Q_y &= -E    \label{2.7}
+\end{align}
+%
+\begin{align}
+    \ev{Q_x} &= -\ev{D} \label{2.8}\\
+    \ev{Q_y} &= -\ev{E} \label{2.9}
+\end{align}
+%
+\begin{align}
+    \var{Q_x} &= \var{D} \label{2.10}\\
+    \var{Q_y} &= \var{E} \label{2.11}\\
+    \cov{Q_x,Q_y} &= \cov{D,E} \label{2.12}
+\end{align}
+
+%------------------------------------------------
+\subsection{First-order second-moment analysis}
+%------------------------------------------------
+Let the function $g(x,y)$ be twice differentiable over the domain of interest.
+%
+\begin{equation} \label{8.1}
+    \ev{g(X,Y)} \approx g(\mu_X,\mu_Y) + \frac{1}{2} \left[
+        \ppderiv{g}{x} \, \sigma_X^2 +
+        \ppderiv{g}{y} \, \sigma_Y^2 +
+        2 \pqderiv{g}{x}{y} \, \sigma_{XY} \right]
+\end{equation}
+%
+\begin{equation} \label{8.2}
+    \var{g(X,Y)} \approx
+        \left[ \pderiv{g}{x} \right]^2 \sigma_X^2 +
+        \left[ \pderiv{g}{y} \right]^2 \sigma_Y^2 +
+        2 \left[ \pderiv{g}{x} \cdot \pderiv{g}{y} \right] \sigma_{XY}
+\end{equation}
+%
+where all of the partial derivatives are evaluated at $(\mu_X,\mu_Y)$.
+
+
+\newpage
+%------------------------------------------------
+\subsection{Regional Discharge Magnitude}
+%------------------------------------------------
+The regional discharge magnitude, $T$, is given by
+%
+\begin{align}
+    S &= Q_x^2 + Q_y^2 \label{2.13}\\
+    T &= \sqrt{S} \label{2.14}
+\end{align}
+%
+\begin{align}
+    \pderiv{T}{Q_x} &= \frac{Q_x}{T} \label{2.15}\\
+    \pderiv{T}{Q_y} &= \frac{Q_y}{T} \label{2.16}\\
+    \ppderiv{T}{Q_x} &= \frac{Q_y^2}{T^3} \label{2.17}\\
+    \ppderiv{T}{Q_y} &= \frac{Q_x^2}{T^3} \label{2.18}\\
+    \pqderiv{T}{Q_x}{Q_y} &= - \frac{Q_x Q_y}{T^3} \label{2.19}
+\end{align}
+
+\begin{equation}\label{2.20}
+    \ev{T} \approx T + \frac{1}{2} \left[
+        \ppderiv{T}{Q_x} \, \var{Q_x} +
+        \ppderiv{T}{Q_y} \, \var{Q_y} +
+        2 \pqderiv{T}{Q_x}{Q_y} \, \cov{Q_x,Q_y} \right]
+\end{equation}
+%
+\begin{equation}\label{2.21}
+    \var{T} \approx
+        \left[ \pderiv{T}{Q_x} \right]^2 \var{Q_x} +
+        \left[ \pderiv{T}{Q_y} \right]^2 \var{Q_y} +
+        2 \left[ \pderiv{T}{Q_x} \cdot \pderiv{T}{Q_y} \right] \cov{Q_x,Q_y}
+\end{equation}
+
+%------------------------------------------------
+\subsection{Regional Discharge Direction}
+%------------------------------------------------
+The regional discharge magnitude, $U$, is given by
+%
+\begin{align}
+    S &= Q_x^2 + Q_y^2 \label{2.22}\\
+    U &= \text{atan2}\left(Q_y, Q_x\right) \label{2.23}
+\end{align}
+%
+\begin{align}
+    \pderiv{U}{Q_x} &= -\frac{Q_y}{S} \label{2.24}\\
+    \pderiv{U}{Q_y} &=  \frac{Q_x}{S} \label{2.25}\\
+    \ppderiv{U}{Q_x} &=  2 \frac{Q_x Q_y}{S^2} \label{2.26}\\
+    \ppderiv{U}{Q_y} &= -2 \frac{Q_x Q_y}{S^2} \label{2.27}\\
+    \pqderiv{U}{Q_x}{Q_y} &= \frac{Q_y^2 - Q_x^2}{S^2} \label{2.28}
+\end{align}
+
+\begin{equation}\label{2.29}
+    \ev{U} \approx U + \frac{1}{2} \left[
+        \ppderiv{U}{Q_x} \, \var{Q_x} +
+        \ppderiv{U}{Q_y} \, \var{Q_y} +
+        2 \pqderiv{U}{Q_x}{Q_y} \, \cov{Q_x,Q_y} \right]
+\end{equation}
+%
+\begin{equation}\label{2.30}
+    \var{U} \approx
+        \left[ \pderiv{U}{Q_x} \right]^2 \var{Q_x} +
+        \left[ \pderiv{U}{Q_y} \right]^2 \var{Q_y} +
+        2 \left[ \pderiv{U}{Q_x} \cdot \pderiv{U}{Q_y} \right] \cov{Q_x,Q_y}
+\end{equation}
+
+
+%******************************************************************************
+\end{document}
+%******************************************************************************
