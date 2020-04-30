@@ -61,9 +61,11 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from boomerang import compute_boomerang
-from capturezone import compute_capturezone
-from utility import isint, isnumber
+from nagadanpy.boomerang import compute_boomerang
+from nagadanpy.capturezone import compute_capturezone
+from nagadanpy.model import Model
+from nagadanpy.probabilityfield import ProbabilityField
+from nagadanpy.utility import isint, isnumber
 
 
 log = logging.getLogger(__name__)
@@ -216,64 +218,65 @@ def nagadan(
         buffer, spacing, umbra,
         confined, tol, maxstep)
 
-    # Compute the full leave-one and leave-two boomerang analyses.
+    # Create the model
+    mo = Model(base, conductivity, porosity, thickness, wells)
+
+    # Compute the full leave-one-out and leave-two-out boomerang analyses.
     kldiv_one, kldiv_two = compute_boomerang(mo, obs)
 
-    # Fancy output... Yay!
-    plt.figure(1)
-    plt.scatter(np.arange(kldiv_one.shape[0]), kldiv_one[:, -1])
+    most_influential_singleton = kldiv_one[0][1]
+    most_influential_pair = [kldiv_two[0][1], kldiv_two[0][2]]
 
-    for k in range(5):
-        i = kldiv_one[k, 0]
-        plt.annotate("%d" % i, (k, kldiv_one[k, -1]))
-
-    plt.ylabel('KL Divergence [bits]')
-    plt.title('Leave One Out', fontsize=28)
-    plt.show()
-    plt.savefig('kldiv_one.pdf')
-
-    plt.figure(2)
-    plt.scatter(np.arange(kldiv_two.shape[0]), kldiv_two[:, -1])
-
-    for k in range(5):
-        i = kldiv_two[k, 0]
-        j = kldiv_two[k, 1]
-        plt.annotate("%d,%d" % (i, j), (k, kldiv_two[k, -1]))
-
-    plt.ylabel('KL Divergence [bits]')
-    plt.title('Leave Two Out', fontsize=28)
-    plt.show()
-    plt.savefig('kldiv_two.pdf')
-
-
-
-    # Compute the capture zone for the target well.
-    cz = compute_capturezone(
-        target, npaths, duration,
-        base, conductivity, porosity, thickness,
-        wells, obs,
-        buffer, spacing, umbra,
-        confined, tol, maxstep)
-
-
-
-
-
-
-
-    # Make the probability contour plot.
-    plt.figure()
-    plt.clf()
-    plt.axis('equal')
-
-    if cz.total_weight > 0:
-        X = np.linspace(cz.xmin, cz.xmax, cz.ncols)
-        Y = np.linspace(cz.ymin, cz.ymax, cz.nrows)
-        Z = cz.pgrid/cz.total_weight
-        plt.contourf(X, Y, Z, 0.5, cmap='tab10')
-        plt.contour(X, Y, Z, 0.5, colors=['black'])
+    # Define the local backtracing velocity function.
+    if confined:
+        def feval(xy):
+            Vx, Vy = mo.compute_velocity_confined(xy[0], xy[1])
+            return np.array([-Vx, -Vy])
     else:
-        log.warning(' There were no valid realizations.')
+        def feval(xy):
+            Vx, Vy = mo.compute_velocity(xy[0], xy[1])
+            return np.array([-Vx, -Vy])
+
+    # Compute the three capture zones around the target well,
+    # using a common local origin.
+    xtarget, ytarget, rtarget = wells[target][0:3]
+
+    xo = np.mean([ob[0] for ob in obs])
+    yo = np.mean([ob[1] for ob in obs])
+
+    # Using all of the obs.
+    mo.fit_regional_flow(obs, xo, yo)
+    pf0 = ProbabilityField(spacing, spacing)
+    compute_capturezone(
+        xtarget, ytarget, rtarget, npaths, duration,
+        pf0, umbra, tol, maxstep, feval, 1.0)
+
+    # Using all of the obs except the most influential singleton.
+    obs1 = np.delete(obs, most_influential_singleton, 0)
+    mo.fit_regional_flow(obs1, xo, yo)
+    pf1 = ProbabilityField(spacing, spacing)
+    compute_capturezone(
+        xtarget, ytarget, rtarget, npaths, duration,
+        pf1, umbra, tol, maxstep, feval, 1.0)
+
+    # Using all of the obs except the most influential pair.
+    obs2 = np.delete(obs, most_influential_pair, 0)
+    mo.fit_regional_flow(obs2, xo, yo)
+    pf2 = ProbabilityField(spacing, spacing)
+    compute_capturezone(
+        xtarget, ytarget, rtarget, npaths, duration,
+        pf2, umbra, tol, maxstep, feval, 1.0)
+
+    # -----------------------------------------------------
+    # GRAPHICAL OUTPUT STARTS HERE
+    # -----------------------------------------------------
+
+    plt.figure(1)
+    plt.clf()
+
+    # Locations map.
+    plt.subplot(2, 3, 1)
+    plt.axis('equal')
 
     # Plot the wells as o markers.
     xw = [we[0] for we in wells]
@@ -289,9 +292,60 @@ def nagadan(
     yo = [ob[1] for ob in obs]
     plt.plot(xo, yo, 'P', markeredgecolor='k', markerfacecolor='w')
 
-    plt.show()
+    i = most_influential_singleton
+    plt.plot(obs[i][0], obs[i][1], 'o', markeredgecolor='r',
+             fillstyle='none', markersize=14)
 
-    return cz
+    for i in most_influential_pair:
+        plt.plot(obs[i][0], obs[i][1], 'xr', markersize=14)
+
+    plt.xlabel('UTM Easting [m]')
+    plt.ylabel('UTM Northing [m]')
+    plt.title('Locations', fontsize=18)
+
+    # Plot the kldiv_one
+    plt.subplot(2, 3, 2)
+    plt.scatter(range(len(kldiv_one)), [p[0] for p in kldiv_one])
+
+    plt.xlabel('Sort Order')
+    plt.ylabel('KL Divergence [bits]')
+    plt.title('Leave One Out', fontsize=18)
+
+    # Plot the kldiv_two
+    plt.subplot(2, 3, 3)
+    plt.scatter(range(len(kldiv_two)), [p[0] for p in kldiv_two])
+
+    plt.xlabel('Sort Order')
+    plt.ylabel('KL Divergence [bits]')
+    plt.title('Leave Two Out', fontsize=18)
+
+    # Make the probability contour plots.
+    plt.subplot(2, 3, 4)
+    plt.axis('equal')
+
+    X = np.linspace(pf0.xmin, pf0.xmax, pf0.ncols)
+    Y = np.linspace(pf0.ymin, pf0.ymax, pf0.nrows)
+    Z = pf0.pgrid
+    plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
+    plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
+
+    plt.subplot(2, 3, 5)
+    plt.axis('equal')
+
+    X = np.linspace(pf1.xmin, pf1.xmax, pf1.ncols)
+    Y = np.linspace(pf1.ymin, pf1.ymax, pf1.nrows)
+    Z = pf1.pgrid
+    plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
+    plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
+
+    plt.subplot(2, 3, 6)
+    plt.axis('equal')
+
+    X = np.linspace(pf2.xmin, pf2.xmax, pf2.ncols)
+    Y = np.linspace(pf2.ymin, pf2.ymax, pf2.nrows)
+    Z = pf2.pgrid
+    plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
+    plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
 
 
 # -------------------------------------

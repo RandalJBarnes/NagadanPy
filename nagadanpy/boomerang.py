@@ -89,32 +89,28 @@ def compute_boomerang(mo, obs):
     o   The centroid of the complete observation set is used as the origin of
         the Oneka-type model.
     """
-    xo, yo = np.mean(obs, 0)[0:2]
-    mu_f, cov_f = mo.fit_coefficients(xo, yo, obs)
-    nobs = obs.shape[0]
+    xo = np.mean([ob[0] for ob in obs])
+    yo = np.mean([ob[1] for ob in obs])
 
-    kldiv_one = np.zeros([nobs, 2])
+    mu_f, cov_f = mo.fit_regional_flow(obs, xo, yo)
+    nobs = len(obs)
+
+    kldiv_one = []
     for i in range(nobs):
         ob = np.delete(obs, i, 0)
-        mu_g, cov_g = mo.fit_coefficients(xo, yo, ob)
+        mu_g, cov_g = mo.fit_regional_flow(ob, xo, yo)
         kl_div = compute_kldiv(mu_f, cov_f, mu_g, cov_g)
-        kldiv_one[i, :] = [i, kl_div]
+        kldiv_one.append((kl_div, i))
+    kldiv_one.sort(reverse=True)
 
-    kldiv_two = np.zeros([nobs*(nobs-1), 3])
-    k = 0
+    kldiv_two = []
     for i in range(nobs-1):
         for j in range(i+1, nobs):
             ob = np.delete(obs, [i, j], 0)
-            mu_g, cov_g = mo.fit_coefficients(xo, yo, ob)
+            mu_g, cov_g = mo.fit_regional_flow(ob, xo, yo)
             kl_div = compute_kldiv(mu_f, cov_f, mu_g, cov_g)
-            kldiv_two[k, :] = [i, j, kl_div]
-            k += 1
-
-    idx = np.flipud(np.argsort(kldiv_one[:, -1]))
-    kldiv_one = kldiv_one[idx, :]
-
-    idx = np.flipud(np.argsort(kldiv_two[:, -1]))
-    kldiv_two = kldiv_two[idx, :]
+            kldiv_two.append((kl_div, i, j))
+    kldiv_two.sort(reverse=True)
 
     return (kldiv_one, kldiv_two)
 

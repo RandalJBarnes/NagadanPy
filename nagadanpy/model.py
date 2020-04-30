@@ -391,7 +391,7 @@ class Model:
         return (Vx, Vy)
 
     # ---------------------------------
-    def fit_regional_flow(self, obs):
+    def fit_regional_flow(self, obs, xo=np.nan, yo=np.nan):
         """
         Set the regionalflow's origin to the cetroid of the obs, then
         fit the regionalflow's coefficient using weighted least squares.
@@ -412,6 +412,14 @@ class Model:
                 z_std : float
                     The standard deviation of the observed static water level elevation [m].
 
+        xo : float, optional
+            The x-coordinate of the local origin [m] for the regional flow
+            component of the Oneka model.
+
+        yo : float, optional
+            The y-coordinate of the local origin [m] for the regional flow
+            component of the Oneka model.
+
         Returns
         -------
         An ordered pair of ndarray (coef_ev, coef_cov).
@@ -425,8 +433,8 @@ class Model:
 
         Notes
         -----
-        o   The centroid of the observations is used as the orgin of
-            the regional flow.
+        o   If xo, yo are ommitted, the centroid of the observations is
+            used as the orgin of the regional flow.
 
         o   The caller should eliminate observations that are too
             close to pumping wells.
@@ -442,8 +450,9 @@ class Model:
         # Set the local origin of the regional flow to the centroid
         # of the observations. This ameliorates the numerical (rounding)
         # issues inherent with UTM coordinates.
-        xo = np.mean([ob[0] for ob in obs])
-        yo = np.mean([ob[1] for ob in obs])
+        if np.isnan(xo) or np.isnan(yo):
+            xo = np.mean([ob[0] for ob in obs])
+            yo = np.mean([ob[1] for ob in obs])
 
         # Preallocate space for the fitting arrays.
         nobs = len(obs)

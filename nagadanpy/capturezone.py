@@ -13,13 +13,11 @@ Exceptions
 Functions
 ---------
     compute_capturezone(
-            target, npaths, duration,
-            base, conductivity, porosity, thickness,
-            wells, observations,
-            spacing, umbra, confined, tol, maxstep):
+            xw, yw, rw, npaths, duration,
+            pf, umbra, tol, maxstep, feval, weight)
         Compute the capture zone for the target well.
 
-    compute_backtrace(xys, duration, tol, maxstep, feval):
+    compute_backtrace(xys, duration, tol, maxstep, feval)
         Compute a single backtrace using the Dormand-Prince adaptive
         Runge-Kutta explicit solver.
 
@@ -43,15 +41,10 @@ Version
     30 April 2020
 """
 
-import logging
 import numpy as np
 
-from model import Model, AquiferError
-from probabilityfield import ProbabilityField
-from utility import isnumber, isint
-
-
-log = logging.getLogger(__name__)
+from nagadanpy.probabilityfield import ProbabilityField
+from nagadanpy.utility import isnumber, isint
 
 
 class Error(Exception):
@@ -66,78 +59,25 @@ class DistributionError(Error):
 
 # ------------------------------------------------------------------------------
 def compute_capturezone(
-        target, npaths, duration,
-        base, conductivity, porosity, thickness,
-        wells, observations,
-        spacing, umbra, confined, tol, maxstep):
+        xw, yw, rw, npaths, duration,
+        pf, umbra, tol, maxstep, feval, weight):
     """
     Compute the capture zone for the target well.
 
     Parameters
     ----------
-    target : int
-        The index identifying the target well in the wellfield.
-        That is, the well for which we will compute a stochastic
-        capture zone. This uses python's 0-based indexing.
+    xw : float
+        The x-coordinate of the well [m].
 
-    npaths : int
-        The minimum number of paths (starting points for the backtraces)
-        to generate uniformly around the target well.
+    yw : float
+        The y-coordinate of the well [m].
+
+    rw : float
+        The radius of the well [m]. 0 < rw.
 
     duration : float
         The duration of the capture zone [d]; e.g. a ten year capture zone
-        will have a duration = 10*365.25.
-
-    base : float
-        The aquifer base elevation [m].
-
-    conductivity : float
-        The aquifer conductivity [m/d]. 0 < conductivity.
-
-    porosity : float
-        The aquifer porosity [-]. 0 < porosity < 1.
-
-    thickness : float
-        The aquifer thickness [m]. 0 < thickness.
-
-    wells : list of well tuples
-        A well tuple contains four values (sort of): (xw, yw, rw, qw)
-            xw : float
-                The x-coordinate of the well [m].
-
-            yw : float
-                The y-coordinate of the well [m].
-
-            rw : float
-                The radius of the well [m]. 0 < rw.
-
-            qw : float
-                The well discharge [m^3/d].
-
-    observations : list of observation tuples.
-        An observation tuple contains four values: (x, y, z_ev, z_std), where
-            x : float
-                The x-coordinate of the observation [m].
-            y : float
-                The y-coordinate of the observation [m].
-            z_ev : float
-                The expected value of the observed static water level elevation [m].
-            z_std : float
-                The standard deviation of the observed static water level elevation [m].
-
-    spacing : float
-        The spacing of the rows and the columns [m] in the square
-        ProbabilityField grids. 0 < spacing.
-
-    umbra : float
-        The vector-to-raster range [m] when mapping a particle path onto
-        the ProbabilityField grids. If a grid node is within umbra of a
-        particle path, it is marked as visited. 0 < umbra.
-
-    confined : boolean
-        True if it is safe to assume that the aquifer is confined
-        throughout the domain of interest, False otherwise. This is a
-        speed kludge.
+        will have a duration = 10*365.25. 0 < duration.
 
     tol : float
         The tolerance [m] for the local error when solving the backtrace
@@ -150,8 +90,7 @@ def compute_capturezone(
 
     Returns
     -------
-    capturezone : ProbabilityField
-        The probability filed resulting from the stochastic simulations.
+    None.
 
     Notes
     -----
@@ -159,91 +98,50 @@ def compute_capturezone(
     """
 
     # Validate the arguments.
-    assert(isint(target) and 0 <= target < len(wells))
+    assert(isnumber(xw))
+    assert(isnumber(yw))
+    assert(isnumber(rw) and 0 < rw)
+
     assert(isint(npaths) and 0 < npaths)
     assert(isnumber(duration) and 0 < duration)
 
-    assert(isnumber(base))
-    assert(isnumber(conductivity) and 0 < conductivity)
-    assert(isnumber(porosity) and 0 < porosity < 1)
-    assert(isnumber(thickness) and 0 < thickness)
-
-    assert(isinstance(wells, list) and len(wells) >= 1)
-    for we in wells:
-        assert(len(we) == 4 and
-               isnumber(we[0]) and
-               isnumber(we[1]) and
-               isnumber(we[2]) and 0 < we[2] and
-               isnumber(we[3]))
-
-    assert(isinstance(observations, list) and len(observations) > 6)
-    for ob in observations:
-        assert(len(ob) == 4 and
-               isnumber(ob[0]) and
-               isnumber(ob[1]) and
-               isnumber(ob[2]) and
-               isnumber(ob[3]) and 0 <= ob[3])
-
-    assert(isnumber(spacing) and 0 < spacing)
+    assert(isinstance(pf, ProbabilityField))
     assert(isnumber(umbra) and 0 < umbra)
-    assert(isinstance(confined, bool))
-
     assert(isnumber(tol) and 0 < tol)
     assert(isnumber(maxstep) and 0 < maxstep)
+
+    assert(isnumber(weight) and 0 <= weight)
 
     # Local constants.
     STEPAWAY = 1
 
-    # Create and fit the model
-    mo = Model(base, conductivity, porosity, thickness, wells)
-    mo.fit_regional_flow(observations)
-
-    # Define the local backtracing velocity function.
-    if confined:
-        def feval(xy):
-            Vx, Vy = mo.compute_velocity_confined(xy[0], xy[1])
-            return np.array([-Vx, -Vy])
-    else:
-        def feval(xy):
-            Vx, Vy = mo.compute_velocity(xy[0], xy[1])
-            return np.array([-Vx, -Vy])
-
     # Setup the constellation of starting points.
-    xtarget, ytarget, rtarget = wells[target][0:3]
+    for theta in np.linspace(0, 2*np.pi, npaths+1)[0:-1]:
+        xs = (rw + STEPAWAY) * np.cos(theta) + xw
+        ys = (rw + STEPAWAY) * np.sin(theta) + yw
 
-    xy_start = []
-    theta = np.linspace(0, 2*np.pi, npaths+1)[0:-1]
-    for a in theta:
-        x = (rtarget + STEPAWAY) * np.cos(a) + xtarget
-        y = (rtarget + STEPAWAY) * np.sin(a) + ytarget
-        xy_start.append((x, y))
-
-    # Initialize the probability field.
-    capturezone = ProbabilityField(spacing, spacing)
-
-    # Generate the base backtraces.
-    for k in range(len(theta)):
-        vertices = compute_backtrace(xy_start[k], duration, tol, maxstep, feval)
+        vertices = compute_backtrace(xs, ys, duration, tol, maxstep, feval)
         x = [v[0] for v in vertices]
         y = [v[1] for v in vertices]
-        capturezone.rasterize(x, y, umbra)
+        pf.rasterize(x, y, umbra)
 
     # Register the backtraces.
-    capturezone.register(1)
-
-    return capturezone
+    pf.register(weight)
 
 
 # -------------------------------------
-def compute_backtrace(xys, duration, tol, maxstep, feval):
+def compute_backtrace(xs, ys, duration, tol, maxstep, feval):
     """
     Compute a single backtrace using the Dormand-Prince adaptive
     Runge-Kutta explicit solver.
 
     Parameters
     ----------
-    xys : (float, float)
-        The (x-coordinate, y-coordinate) [m] of the starting point.
+    xs : float
+        The x-coordinate [m] of the starting point.
+
+    ys : float
+        The y-coordinate [m] of the starting point.
 
     duration : float
         The duration of the capture zone [d]; e.g. a ten year capture zone
@@ -319,8 +217,8 @@ def compute_backtrace(xys, duration, tol, maxstep, feval):
     t = 0
     dt = 0.1                # This is an arbitrary choice.
 
-    vertices = [xys]
-    xy = np.array([xys[0], xys[1]])
+    vertices = [(xs, ys)]
+    xy = np.array([xs, ys])
 
     try:
         k1 = feval(xy)
