@@ -18,32 +18,37 @@ Author
 
 Version
 -------
-    04 April 2020
+    30 April 2020
 """
 
 import numpy as np
 
 
-def boomerang(mo, obs):
+# -----------------------------------------------------------------------------
+def compute_boomerang(mo, obs):
     """
-    Computes the Kullback-Leibler Divergences for leave-one-out and leave-two-out
-    boomerang analyses.
+    Computes the Kullback-Leibler Divergences for leave-one-out and
+    leave-two-out boomerang analyses.
 
     Parameters
     ----------
     mo : onekapy.model.Model
         The well-formed oneka-type model.
-    obs : ndarray, shape(:, 4)
-        The array of observations. There is one row for each observation, and
-        each row contains four values: [x, y, z_ev, z_std]
-            x : double
+
+    obs : list of observation tuples.
+        Each observation tuple contains four values: (x, y, z_ev, z_std).
+            x : float
                 The x-coordinate of the observation [m].
-            y : double
+
+            y : float
                 The y-coordinate of the observation [m].
-            z_ev : double
+
+            z_ev : float
                 The expected value of the observed static water level elevation [m].
-            z_std : double
+
+            z_std : float
                 The standard deviation of the observed static water level elevation [m].
+
 
     Returns
     -------
@@ -114,10 +119,11 @@ def boomerang(mo, obs):
     return (kldiv_one, kldiv_two)
 
 
+# -----------------------------------------------------------------------------
 def compute_kldiv(mu_f, cov_f, mu_g, cov_g):
     """
-    Compute the Kullback-Leibler Divergence D_{KL}(G|F) where F and G are multivariate
-    normal distributions with the same dimensions n.
+    Compute the Kullback-Leibler Divergence D_{KL}(G|F) where F and G are
+    multivariate normal distributions with the same dimensions n.
 
     Parameters
     ----------
@@ -133,7 +139,7 @@ def compute_kldiv(mu_f, cov_f, mu_g, cov_g):
     Returns
     -------
     kldiv : double
-        Kullback-Leibler Divergence D_{KL}(G|F).
+        Kullback-Leibler Divergence D_{KL}(G|F). The units are [bits].
 
     Notes
     -----
