@@ -14,18 +14,20 @@ Author
 
 Version
 -------
-    04 April 2020
+    29 April 2020
 """
 
 import math
 import numpy as np
 import pytest
 
-from aquifer import Aquifer
-from herd import Herd
-from model import Model
-from regionalflow import RegionalFlow
-from well import Well
+
+"""
+from nagadanpy.aquifer import Aquifer
+from nagadanpy.herd import Herd
+from nagadanpy.model import Model
+from nagadanpy.regionalflow import RegionalFlow
+from nagadanpy.well import Well
 
 
 @pytest.fixture
@@ -63,13 +65,13 @@ def test_model_compute_discharge(my_model):
     assert np.allclose(discharge, discharge_true, rtol=1.0e-6)
 
 
-def test_compute_jacobian(my_model):
+def test_model_compute_jacobian(my_model):
     jacobian = my_model.compute_jacobian(110.0, 195.0)
     jacobian_true = np.array([[-1.2365, -2.0277], [-2.0279, -2.7634]])
     assert np.allclose(jacobian, jacobian_true, rtol=0.001)
 
 
-def test_compute_velocity(my_model):
+def test_model_compute_velocity(my_model):
     velocity = my_model.compute_velocity(100.0, 100.0)
     velocity_true = np.array([[-11.976338022763, -11.976338022763]])
     assert np.allclose(velocity, velocity_true, rtol=1.0e-6)
@@ -117,3 +119,4 @@ def test_model_compute_fit():
 
     P_ev, P_cov = mo.fit_coefficients(0.0, 0.0, obs)
     assert np.allclose(P_ev, P_true, rtol=0.01)
+"""

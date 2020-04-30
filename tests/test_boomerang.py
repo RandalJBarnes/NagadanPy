@@ -14,28 +14,29 @@ Author
 
 Version
 -------
-    04 April 2020
+    30 April 2020
 """
 
 import math
 import numpy as np
 
-from aquifer import Aquifer
-from boomerang import compute_kldiv
-from boomerang import boomerang
-from herd import Herd
-from model import Model
-from regionalflow import RegionalFlow
-from well import Well
+# from nagadanpy.aquifer import Aquifer
+from nagadanpy.boomerang import compute_kldiv
+# from nagadanpy.boomerang import boomerang
+# from nagadanpy.herd import Herd
+# from nagadanpy.model import Model
+# from nagadanpy.regionalflow import RegionalFlow
+# from nagadanpy.well import Well
 
 
+"""
 def test_boomerang():
     aq = Aquifer(500.0, 100.0, 0.25, 1.0)
     re = RegionalFlow(0.0, 0.0, np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
     we1 = Well(0.0, 0.0, 1.0, 1000.0)
     we2 = Well(100.0, 100.0, 1.0, 1000.0)
     he = Herd([we1, we2])
-    mo = Model(aq, re, he)
+#    mo = Model(aq, re, he)
 
     obs = np.array([
         [23.00, 11.00, 573.64, 0.10],
@@ -66,9 +67,10 @@ def test_boomerang():
 
     kldiv_one, kldiv_two = boomerang(mo, obs)
     # TODO: add a answer to compare with.
+"""
 
 
-def test_compute_kldiv():
+def test_boomerang_compute_kldiv():
     muf = np.array([[109], [111], [-86], [8], [-121], [-111]])
     covf = np.array([
         [92, -6, 11, -10, 13, 2],

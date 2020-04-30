@@ -14,17 +14,17 @@ Author
 
 Version
 -------
-    04 April 2020
+    29 April 2020
 """
 
 import math
 import numpy as np
 import pytest
 
-from regionalflow import RegionalFlow
+from nagadanpy.regionalflow import RegionalFlow
 
 
-def test_constructor():
+def test_regionalflow_constructor():
     with pytest.raises(TypeError):
         RegionalFlow(0.0, 0.0, np.array([1.0, 1.0]))
     with pytest.raises(TypeError):
@@ -37,14 +37,14 @@ def test_constructor():
         RegionalFlow(0.0, 0.0, np.array([np.nan, 1.0, 1.0, 1.0, 1.0, 1.0]))
 
 
-def test_compute_potential():
+def test_regionalflow_compute_potential():
     P = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     r1 = RegionalFlow(100.0, 200.0, P)
     Phi = r1.compute_potential(10.0, 20.0)
     assert math.isclose(Phi, 120246.0, rel_tol=1e-6)
 
 
-def test_compute_discharge():
+def test_regionalflow_compute_discharge():
     P = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     r1 = RegionalFlow(100.0, 200.0, P)
     Q = r1.compute_discharge(10.0, 20.0)
@@ -58,7 +58,7 @@ def test_compute_discharge():
     assert math.isclose(Q[1], -301.0, rel_tol=1e-6)
 
 
-def test_compute_jacobian():
+def test_regionalflow_compute_jacobian():
     P = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 500.0])
     re = RegionalFlow(0.0, 0.0, P)
     jacobian = re.compute_jacobian(150.0, 150.0)
