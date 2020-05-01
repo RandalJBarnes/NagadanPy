@@ -18,13 +18,13 @@ Author
 
 Version
 -------
-    21 April 2020
+    01 May 2020
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-import aquifer
+import nagadanpy.model
 
 
 # -------------------------------------
@@ -37,8 +37,8 @@ def contour_head(mo, xmin, xmax, ymin, ymax, nrows, ncols):
     for i in range(nrows):
         for j in range(ncols):
             try:
-                grid[i, j] = mo.compute_head(np.array([x[j], y[i]]))
-            except aquifer.AquiferError:
+                grid[i, j] = mo.compute_head(x[j], y[i])
+            except nagadanpy.model.AquiferError:
                 grid[i, j] = np.nan
 
     plt.contourf(x, y, grid, cmap='bwr')
@@ -55,8 +55,8 @@ def contour_potential(mo, xmin, xmax, ymin, ymax, nrows, ncols):
     for i in range(nrows):
         for j in range(ncols):
             try:
-                grid[i, j] = mo.compute_potential(np.array([x[j], y[i]]))
-            except aquifer.AquiferError:
+                grid[i, j] = mo.compute_potential(x[j], y[i])
+            except nagadanpy.model.AquiferError:
                 grid[i, j] = np.nan
 
     plt.contourf(x, y, grid, cmap='bwr')
@@ -112,6 +112,6 @@ def quick_capture_zone(mo, we, nrays, nyears, maxstep, fmt):
                 else:
                     plt.plot(sol.y[0, idx], sol.y[1, idx], '-k')
 
-        except aquifer.AquiferError:
+        except nagadanpy.model.AquiferError:
             print(f"Aquifer error (e.g. dry) for theta = {theta:.3f}")
             continue

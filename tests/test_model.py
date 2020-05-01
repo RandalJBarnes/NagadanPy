@@ -14,13 +14,13 @@ Author
 
 Version
 -------
-    30 April 2020
+    01 May 2020
 """
 
 import numpy as np
 import pytest
 
-from model import Model
+from nagadanpy.model import Model
 
 
 @pytest.fixture
