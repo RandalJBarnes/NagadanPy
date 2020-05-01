@@ -54,7 +54,7 @@ Authors
 
 Version
 -------
-    30 April 2020
+    01 May 2020
 """
 
 import logging
@@ -70,7 +70,7 @@ from nagadanpy.utility import isint, isnumber
 
 log = logging.getLogger(__name__)
 
-VERSION = '30 April 2020'
+VERSION = '01 May 2020'
 
 
 # -----------------------------------------------
@@ -92,23 +92,23 @@ def nagadan(
 
     npaths : int
         The number of paths (starting points for the backtraces)
-        to generate uniformly around the target well.
+        to generate uniformly around the target well. 0 < npaths.
 
     duration : float
         The duration of the capture zone [d]. For example, a 10-year
-        capture zone would have a duration = 10*365.25.
+        capture zone would have a duration = 10*365.25. 0 < duration.
 
     base : float
         The base elevation of the aquifer [m].
 
     conductivity : float
-        The hydraulic conductivity of the aquifer [m/d]. conductivity > 0.
+        The hydraulic conductivity of the aquifer [m/d]. 0 < conductivity.
 
     porosity : float
         The porosity of the aquifer []. 0 < porosity < 1.
 
     thickness : float
-        The thickness of the aquifer [m]. thickness > 0.
+        The thickness of the aquifer [m]. 0 < thickness.
 
     wells : list
         The list of well tuples. Each well tuple has four components.
@@ -119,7 +119,7 @@ def nagadan(
                 The y-coordinate of the well [m].
 
             rw : float
-                The radius of the well [m]. rw > 0.
+                The radius of the well [m]. 0 < rw.
 
             qw : float
                 The discharge of the well [m^3/d].
@@ -128,25 +128,28 @@ def nagadan(
         An observation tuple contains four values: (x, y, z_ev, z_std), where
             x : float
                 The x-coordinate of the observation [m].
+
             y : float
                 The y-coordinate of the observation [m].
+
             z_ev : float
                 The expected value of the observed static water level elevation [m].
+
             z_std : float
                 The standard deviation of the observed static water level elevation [m].
 
-    buffer : float, optional [default = 100]
+    buffer : float, optional
         The buffer distance [m] around each well. If an obs falls
-        within buffer of any well, it is removed.
+        within buffer of any well, it is removed. Default is 100 [m].
 
     spacing : float, optional
         The spacing of the rows and the columns [m] in the square
-        ProbabilityField grids. Default is 10.
+        ProbabilityField grids. Default is 10 [m].
 
     umbra : float, optional
         The vector-to-raster range [m] when mapping a particle path
         onto the ProbabilityField grids. If a grid node is within
-        umbra of a particle path, it is marked as visited. Default is 10.
+        umbra of a particle path, it is marked as visited. Default is 10 [m].
 
     confined : boolean, optional
         True if it is safe to assume that the aquifer is confined
@@ -165,7 +168,7 @@ def nagadan(
 
     Returns
     -------
-    A capturezone probability field.
+    None.
 
     Notes
     -----
@@ -237,7 +240,7 @@ def nagadan(
             Vx, Vy = mo.compute_velocity(xy[0], xy[1])
             return np.array([-Vx, -Vy])
 
-    # Compute the three capture zones around the target well,
+    # Compute the three capture zones around the target well
     # using a common local origin.
     xtarget, ytarget, rtarget = wells[target][0:3]
 
@@ -294,14 +297,15 @@ def nagadan(
 
     i = most_influential_singleton
     plt.plot(obs[i][0], obs[i][1], 'o', markeredgecolor='r',
-             fillstyle='none', markersize=14)
+             fillstyle='none', markersize=12)
 
     for i in most_influential_pair:
-        plt.plot(obs[i][0], obs[i][1], 'xr', markersize=14)
+        plt.plot(obs[i][0], obs[i][1], 'D', markeredgecolor='r',
+                 fillstyle='none', markersize=14)
 
     plt.xlabel('UTM Easting [m]')
     plt.ylabel('UTM Northing [m]')
-    plt.title('Locations', fontsize=18)
+    plt.title('Locations', fontsize=14)
 
     # Plot the kldiv_one
     plt.subplot(2, 3, 2)
@@ -309,7 +313,7 @@ def nagadan(
 
     plt.xlabel('Sort Order')
     plt.ylabel('KL Divergence [bits]')
-    plt.title('Leave One Out', fontsize=18)
+    plt.title('Leave One Out', fontsize=14)
 
     # Plot the kldiv_two
     plt.subplot(2, 3, 3)
@@ -317,7 +321,7 @@ def nagadan(
 
     plt.xlabel('Sort Order')
     plt.ylabel('KL Divergence [bits]')
-    plt.title('Leave Two Out', fontsize=18)
+    plt.title('Leave Two Out', fontsize=14)
 
     # Make the probability contour plots.
     plt.subplot(2, 3, 4)
@@ -329,6 +333,14 @@ def nagadan(
     plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
     plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
 
+    plt.xlabel('UTM Easting [m]')
+    plt.ylabel('UTM Northing [m]')
+    plt.title('All Data', fontsize=14)
+
+    [XX, YY] = np.meshgrid(X, Y)
+    XX = np.reshape(XX[Z > 0.0], -1)
+    YY = np.reshape(YY[Z > 0.0], -1)
+
     plt.subplot(2, 3, 5)
     plt.axis('equal')
 
@@ -338,6 +350,12 @@ def nagadan(
     plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
     plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
 
+    plt.scatter(XX, YY, marker='.')
+
+    plt.xlabel('UTM Easting [m]')
+    plt.ylabel('UTM Northing [m]')
+    plt.title('Without #1 Singleton', fontsize=14)
+
     plt.subplot(2, 3, 6)
     plt.axis('equal')
 
@@ -346,6 +364,12 @@ def nagadan(
     Z = pf2.pgrid
     plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
     plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
+
+    plt.scatter(XX, YY, marker='.')
+
+    plt.xlabel('UTM Easting [m]')
+    plt.ylabel('UTM Northing [m]')
+    plt.title('Without #1 Pair', fontsize=14)
 
 
 # -------------------------------------
@@ -363,6 +387,7 @@ def filter_obs(observations, wells, buffer):
         are x and y:
             x : float
                 The x-coordinate of the observation [m].
+
             y : float
                 The y-coordinate of the observation [m].
 
@@ -391,12 +416,16 @@ def filter_obs(observations, wells, buffer):
     Notes
     -----
     o   Duplicate observations are averaged and the associated
-        standard deviation is updated to reflect this. We use a
-        weighted average, with the weight for the i'th obs
-        proportional to 1/sigma^2_i. This is the minimum variance
-        estimator. See, for example,
+        standard deviation is updated to reflect this.
+
+    o   We use a weighted average, with the weight for the i'th
+        obs proportional to 1/sigma^2_i. This is the minimum
+        variance estimator. See, for example,
         https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
     """
+
+    # Local constants.
+    TOO_CLOSE = 1.0             # Minimum distance for unique obs.
 
     # Remove all observations that are too close to pumping wells.
     obs = []
@@ -419,7 +448,7 @@ def filter_obs(observations, wells, buffer):
     i = 0
     while i < len(obs):
         j = i+1
-        while (j < len(obs)) and (np.hypot(obs[i][0]-obs[j][0], obs[i][1]-obs[j][1]) < 1):
+        while (j < len(obs)) and (np.hypot(obs[i][0]-obs[j][0], obs[i][1]-obs[j][1]) < TOO_CLOSE):
             j += 1
 
         if j-i > 1:

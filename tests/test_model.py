@@ -20,7 +20,7 @@ Version
 import numpy as np
 import pytest
 
-from nagadanpy.model import Model
+from model import Model
 
 
 @pytest.fixture

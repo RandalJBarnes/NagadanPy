@@ -58,7 +58,7 @@ class AquiferError(Error):
     pass
 
 
-# =========================================================
+# ---------------------------------------------------------
 class Model:
     """
     An Oneka-type analytic element model.
@@ -96,7 +96,7 @@ class Model:
         The y-coordinate of the local origin [m] for the regional flow
         component of the Oneka model.
 
-    coef : ndarray, shape=(6, ), dtype=float
+    coef : ndarray, shape=(6, ), dtype=float, optional.
         The six coefficient for the regional flow: A, B, C, D, E, F.
 
     Methods
@@ -178,11 +178,11 @@ class Model:
         self.porosity = porosity
         self.thickness = thickness
 
+        self.wells = wells
         self.xo = xo
         self.yo = yo
         self.coef = coef
 
-        self.wells = wells
 
     # ---------------------------------
     def __repr__(self):
@@ -407,10 +407,12 @@ class Model:
                     The y-coordinate of the observation [m].
 
                 z_ev : float
-                    The expected value of the observed static water level elevation [m].
+                    The expected value of the observed static water 
+                    level elevation [m].
 
                 z_std : float
-                    The standard deviation of the observed static water level elevation [m].
+                    The standard deviation of the observed static water 
+                    level elevation [m].
 
         xo : float, optional
             The x-coordinate of the local origin [m] for the regional flow

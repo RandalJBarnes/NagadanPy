@@ -8,7 +8,6 @@ Classes
 Exceptions
 ----------
     Error
-    DistributionError
 
 Functions
 ---------
@@ -38,22 +37,21 @@ Authors
 
 Version
 -------
-    30 April 2020
+    01 May 2020
 """
 
+import logging
 import numpy as np
 
 from nagadanpy.probabilityfield import ProbabilityField
 from nagadanpy.utility import isnumber, isint
+from nagadanpy.model import AquiferError
+
+log = logging.getLogger(__name__)
 
 
 class Error(Exception):
     """Base class for module errors."""
-    pass
-
-
-class DistributionError(Error):
-    """Invalid distribution."""
     pass
 
 
@@ -113,9 +111,9 @@ def compute_capturezone(
     assert(isnumber(weight) and 0 <= weight)
 
     # Local constants.
-    STEPAWAY = 1
+    STEPAWAY = 1.0              # Distance beyond the well radius [m].
 
-    # Setup the constellation of starting points.
+    # Compute the backtraces.
     for theta in np.linspace(0, 2*np.pi, npaths+1)[0:-1]:
         xs = (rw + STEPAWAY) * np.cos(theta) + xw
         ys = (rw + STEPAWAY) * np.sin(theta) + yw
@@ -145,16 +143,16 @@ def compute_backtrace(xs, ys, duration, tol, maxstep, feval):
 
     duration : float
         The duration of the capture zone [d]; e.g. a ten year capture zone
-        will have a duration = 10*365.25.
+        will have a duration = 10*365.25. 0 < duration.
 
     tol : float
         The tolerance [m] for the local error when solving the backtrace
         differential equation. This is an inherent parameter for an
-        adaptive Runge-Kutta method.
+        adaptive Runge-Kutta method. 0 < tol.
 
     maxstep : float
         The maximum allowed step in space [m] when solving the backtrace
-        differential equation. This is NOT the maximum time step.
+        differential equation. 0 < maxstep.
 
     feval : function
         The backtracing velocity function.

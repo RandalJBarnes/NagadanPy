@@ -18,7 +18,7 @@ Author
 
 Version
 -------
-    30 April 2020
+    01 May 2020
 """
 
 import numpy as np
@@ -44,48 +44,50 @@ def compute_boomerang(mo, obs):
                 The y-coordinate of the observation [m].
 
             z_ev : float
-                The expected value of the observed static water level elevation [m].
+                The expected value of the observed static water level 
+                elevation [m].
 
             z_std : float
-                The standard deviation of the observed static water level elevation [m].
-
+                The standard deviation of the observed static water level 
+                elevation [m]. 0 < z_std.
 
     Returns
     -------
-    A pair of ndarrays
+    [kldiv_one, kldiv_two] : pair of lists of tuples
+    
+        kldiv_one is a list of tuples. The tuples result from a leave-one-out 
+        boomerang analysis. Each tuple takes the form
 
-        kldiv_one : ndarray, dtype=double, shape=(nobs, 2)
-        kldiv_two : ndarray, dtype=double, shape=((nobs*(nobs-1))/2, 3)
+            (kldiv, i)
 
-    kldiv_one results from a leave-one-out analysis. Each row takes the form
+        where i is the index (row in the obs array) of the ignored 
+        observation, and kl_div is the associate Kullback-Leibler 
+        Divergence. len(kldiv_one) = nobs.
 
-        [i, kldiv]
+        kldiv_two is a list of tuples. The tuples result from a leave-two-out 
+        boomerang analysis. Each tuple take thes form
 
-    where i is the index (row in the obs array) of the ignored observation, and
-    kl_div is the associate Kullback-Leibler Divergence.
+            (kldiv, i, j)
 
-    kldiv_two results from a leave-two-out analysis. Each row take thes form
+        where i and j are the indices (rows in the obs array) of the removed
+        observations, and  kl_div is the associate Kullback-Leibler Divergence.
+        len(kldiv_two) = nobs*(nobs-1)/2.
 
-        [i, j, kldiv]
-
-    where i and j are the indices (rows in the obs array) of the ignored observations,
-    and  kl_div is the associate Kullback-Leibler Divergence.
-
-    The reported Kullback-Leibler Divergences are computed as
-
-        D_{KL}(G|F)
-
-    where:
-        F is the posterior multivariate normal distribution for the Oneka-type
-            model parameters computed using the complete observation set.
-        G is the posterior multivariate normal distribution for the Oneka-type
-            model parameters computed using the reduced observation set.
-
-    The rows kldiv_one and kldiv_two arrays are sorted on the kldiv, from
-    highest to lowest.
+        The rows kldiv_one and kldiv_two arrays are sorted on the kldiv, from
+        highest to lowest.
 
     Notes
     -----
+    o   The reported Kullback-Leibler Divergences are computed as
+
+            D_{KL}(G|F)
+
+        where:
+            F is the posterior multivariate normal distribution for the Oneka-type
+                model parameters computed using the complete observation set.
+            G is the posterior multivariate normal distribution for the Oneka-type
+                model parameters computed using the reduced observation set.
+
     o   The centroid of the complete observation set is used as the origin of
         the Oneka-type model.
     """
