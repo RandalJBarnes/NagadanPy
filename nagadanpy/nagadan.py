@@ -222,8 +222,8 @@ def nagadan(
         ymin = np.min([np.min([ob[1] for ob in obs]), np.min([we[1] for we in wells])])
         ymax = np.max([np.max([ob[1] for ob in obs]), np.max([we[1] for we in wells])])
 
-        xborder = (xmax - xmin)/20
-        yborder = (ymax - ymin)/20
+        xborder = (xmax - xmin)/50
+        yborder = (ymax - ymin)/50
 
         xmin -= xborder
         xmax += xborder
