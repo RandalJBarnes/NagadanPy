@@ -183,7 +183,6 @@ class Model:
         self.yo = yo
         self.coef = coef
 
-
     # ---------------------------------
     def __repr__(self):
         return 'Model({0.base}, {0.conductivity}, {0.porosity}, {0.thickness})'.format(self)
@@ -449,12 +448,14 @@ class Model:
         # compute_potential during fitting include the wells only.
         self.coef = np.zeros(6, )
 
-        # Set the local origin of the regional flow to the centroid
-        # of the observations. This ameliorates the numerical (rounding)
-        # issues inherent with UTM coordinates.
+        # Set the local origin of the regional flow. In no origin is given
+        # in the arguments, then the centroid of the observations is used.
         if np.isnan(xo) or np.isnan(yo):
             xo = np.mean([ob[0] for ob in obs])
             yo = np.mean([ob[1] for ob in obs])
+
+        self.xo = xo
+        self.yo = yo
 
         # Preallocate space for the fitting arrays.
         nobs = len(obs)
@@ -462,6 +463,7 @@ class Model:
         b = np.zeros([nobs, 1])
         W = np.zeros([nobs, nobs])
 
+        # Set up the least sqaures problem.
         for i in range(nobs):
             x, y, z_ev, z_std = obs[i]
 
@@ -482,6 +484,7 @@ class Model:
             b[i] = pot_ev - self.compute_potential(x, y)
             W[i, i] = 1/pot_std
 
+        # Solve the least squares problem.
         WA = np.matmul(W, A)
         Wb = np.matmul(W, b)
 
@@ -499,8 +502,6 @@ class Model:
         AWWA = np.matmul(WA.T, WA)
         coef_cov = np.linalg.inv(AWWA)
 
-        self.xo = xo
-        self.yo = yo
         self.coef = coef_ev
 
         return(coef_ev, coef_cov)

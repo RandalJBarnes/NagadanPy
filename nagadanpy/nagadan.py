@@ -65,7 +65,6 @@ from nagadanpy.boomerang import compute_boomerang
 from nagadanpy.capturezone import compute_capturezone
 from nagadanpy.model import Model
 from nagadanpy.probabilityfield import ProbabilityField
-from nagadanpy.utility import isint, isnumber
 from nagadanpy.visualize import contour_head
 
 log = logging.getLogger(__name__)
@@ -177,38 +176,38 @@ def nagadan(
     """
 
     # Validate the arguments.
-    assert(isint(target) and 0 <= target < len(wells))
-    assert(isint(npaths) and 0 < npaths)
-    assert(isnumber(duration) and 0 < duration)
+    assert(isinstance(target, int) and 0 <= target < len(wells))
+    assert(isinstance(npaths, int) and 0 < npaths)
+    assert((isinstance(duration, int) or isinstance(duration, float)) and 0 < duration)
 
-    assert(isnumber(base))
-    assert(isnumber(conductivity) and 0 < conductivity)
-    assert(isnumber(porosity) and 0 < porosity < 1)
-    assert(isnumber(thickness) and 0 < thickness)
+    assert(isinstance(base, int) or isinstance(base, float))
+    assert((isinstance(conductivity, int) or isinstance(conductivity, float)) and 0 < conductivity)
+    assert(isinstance(porosity, float) and 0 < porosity < 1)
+    assert((isinstance(thickness, int) or isinstance(thickness, float)) and 0 < thickness)
 
     assert(isinstance(wells, list) and len(wells) >= 1)
     for we in wells:
         assert(len(we) == 4 and
-               isnumber(we[0]) and
-               isnumber(we[1]) and
-               isnumber(we[2]) and 0 < we[2] and
-               isnumber(we[3]))
+               (isinstance(we[0], int) or isinstance(we[0], float)) and
+               (isinstance(we[1], int) or isinstance(we[1], float)) and
+               (isinstance(we[2], int) or isinstance(we[2], float)) and 0 < we[2] and
+               (isinstance(we[3], int) or isinstance(we[3], float)))
 
     assert(isinstance(observations, list) and len(observations) > 6)
     for ob in observations:
         assert(len(ob) == 4 and
-               isnumber(ob[0]) and
-               isnumber(ob[1]) and
-               isnumber(ob[2]) and
-               isnumber(ob[3]) and 0 <= ob[3])
+               (isinstance(ob[0], int) or isinstance(ob[0], float)) and
+               (isinstance(ob[1], int) or isinstance(ob[1], float)) and
+               (isinstance(ob[2], int) or isinstance(ob[2], float)) and
+               (isinstance(ob[3], int) or isinstance(ob[3], float)) and 0 <= ob[3])
 
-    assert(isnumber(buffer) and 0 < buffer)
-    assert(isnumber(spacing) and 0 < spacing)
-    assert(isnumber(umbra) and 0 < umbra)
+    assert((isinstance(buffer, int) or isinstance(buffer, float)) and 0 < buffer)
+    assert((isinstance(spacing, int) or isinstance(spacing, float)) and 0 < spacing)
+    assert((isinstance(umbra, int) or isinstance(umbra, float)) and 0 < umbra)
 
     assert(isinstance(confined, bool))
-    assert(isnumber(tol) and 0 < tol)
-    assert(isnumber(maxstep) and 0 < maxstep)
+    assert((isinstance(tol, int) or isinstance(tol, float)) and 0 < tol)
+    assert((isinstance(maxstep, int) or isinstance(maxstep, float)) and 0 < maxstep)
 
     # Log the run information.
     log_the_run(

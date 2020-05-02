@@ -5,10 +5,12 @@ boomerang analyses.
 Functions
 ---------
 boomerang(mo, obs):
-    Implements leave-one-out and leave-two-out boomerang analyses.
+    Computes the Kullback-Leibler Divergences for leave-one-out and
+    leave-two-out boomerang analyses.
 
-Notes
------
+compute_kldiv(mu_f, cov_f, mu_g, cov_g):
+    Compute the Kullback-Leibler Divergence D_{KL}(G|F) where F and G are
+    multivariate normal distributions with the same dimensions n.
 
 Author
 ------
@@ -18,7 +20,7 @@ Author
 
 Version
 -------
-    01 May 2020
+    02 May 2020
 """
 
 import numpy as np
@@ -44,27 +46,27 @@ def compute_boomerang(mo, obs):
                 The y-coordinate of the observation [m].
 
             z_ev : float
-                The expected value of the observed static water level 
+                The expected value of the observed static water level
                 elevation [m].
 
             z_std : float
-                The standard deviation of the observed static water level 
+                The standard deviation of the observed static water level
                 elevation [m]. 0 < z_std.
 
     Returns
     -------
     [kldiv_one, kldiv_two] : pair of lists of tuples
-    
-        kldiv_one is a list of tuples. The tuples result from a leave-one-out 
+
+        kldiv_one is a list of tuples. The tuples result from a leave-one-out
         boomerang analysis. Each tuple takes the form
 
             (kldiv, i)
 
-        where i is the index (row in the obs array) of the ignored 
-        observation, and kl_div is the associate Kullback-Leibler 
+        where i is the index (row in the obs array) of the ignored
+        observation, and kl_div is the associate Kullback-Leibler
         Divergence. len(kldiv_one) = nobs.
 
-        kldiv_two is a list of tuples. The tuples result from a leave-two-out 
+        kldiv_two is a list of tuples. The tuples result from a leave-two-out
         boomerang analysis. Each tuple take thes form
 
             (kldiv, i, j)

@@ -18,7 +18,7 @@ Author
 
 Version
 -------
-    01 May 2020
+    02 May 2020
 """
 
 import matplotlib.pyplot as plt

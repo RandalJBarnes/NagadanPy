@@ -37,22 +37,13 @@ Authors
 
 Version
 -------
-    01 May 2020
+    02 May 2020
 """
 
 import logging
 import numpy as np
 
-from nagadanpy.probabilityfield import ProbabilityField
-from nagadanpy.utility import isnumber, isint
-from nagadanpy.model import AquiferError
-
 log = logging.getLogger(__name__)
-
-
-class Error(Exception):
-    """Base class for module errors."""
-    pass
 
 
 # ------------------------------------------------------------------------------
@@ -94,21 +85,6 @@ def compute_capturezone(
     -----
     o   This capture zone is not stochastic.
     """
-
-    # Validate the arguments.
-    assert(isnumber(xw))
-    assert(isnumber(yw))
-    assert(isnumber(rw) and 0 < rw)
-
-    assert(isint(npaths) and 0 < npaths)
-    assert(isnumber(duration) and 0 < duration)
-
-    assert(isinstance(pf, ProbabilityField))
-    assert(isnumber(umbra) and 0 < umbra)
-    assert(isnumber(tol) and 0 < tol)
-    assert(isnumber(maxstep) and 0 < maxstep)
-
-    assert(isnumber(weight) and 0 <= weight)
 
     # Local constants.
     STEPAWAY = 1.0              # Distance beyond the well radius [m].
@@ -249,7 +225,7 @@ def compute_backtrace(xs, ys, duration, tol, maxstep, feval):
 
             dt = 0.9 * min((tol/(est + EPS))**(1/5), maxstep/(ds + EPS), 10) * dt
 
-    except AquiferError:
+    except:
         log.warning(' trace terminated prematurely at t = {0:.2f} < duration.'.format(t))
 
     finally:
