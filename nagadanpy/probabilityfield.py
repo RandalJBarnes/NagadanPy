@@ -27,7 +27,7 @@ Authors
 
 Version
 -------
-    30 April 2020
+    02 May 2020
 """
 
 import logging
@@ -122,7 +122,7 @@ class ProbabilityField:
     """
 
     # ---------------------------------
-    def __init__(self, deltax, deltay):
+    def __init__(self, deltax, deltay, xo=np.nan, yo=np.nan):
         # validate the parameters
         if deltax <= 0:
             raise RangeError("<deltax> must be > 0.")
@@ -133,8 +133,22 @@ class ProbabilityField:
         self.deltax = deltax
         self.deltay = deltay
 
-        self.nrows = 0
-        self.ncols = 0
+        if np.isnan(xo) or np.isnan(yo):
+            self.nrows = 0
+            self.ncols = 0
+        else:
+            self.xmin = xo - deltax
+            self.xmax = xo + deltax
+            self.ymin = yo - deltay
+            self.ymax = yo + deltay
+
+            self.nrows = 3
+            self.ncols = 3
+
+            self.pgrid = np.zeros((self.nrows, self.ncols), dtype=np.float)
+            self.rgrid = np.zeros((self.nrows, self.ncols), dtype=np.bool)
+
+            self.total_weight = 0.0
 
     # ---------------------------------
     def __repr__(self):

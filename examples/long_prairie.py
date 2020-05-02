@@ -14,12 +14,11 @@ Authors
 
 Version
 -------
-    01 May 2020
+    02 May 2020
 """
 
 from datetime import datetime
 import logging
-import numpy as np
 import time
 
 from nagadanpy.nagadan import nagadan
@@ -28,7 +27,7 @@ from nagadanpy.nagadan import nagadan
 # ======================================
 # Here are the necessary data.
 # ======================================
-PROJECTNAME = 'ex_LongPrairie example'
+PROJECTNAME = 'Long Prairie example'
 
 TARGET = 0
 NPATHS = 500
@@ -38,11 +37,6 @@ BASE = 0.0
 CONDUCTIVITY = 9.0
 POROSITY = 0.20
 THICKNESS = 12.6
-
-XMIN = np.nan
-XMAX = np.nan
-YMIN = np.nan
-YMAX = np.nan
 
 BUFFER = 100
 SPACING = 10
@@ -153,7 +147,6 @@ if __name__ == "__main__":
         TARGET, NPATHS, DURATION,
         BASE, CONDUCTIVITY, POROSITY, THICKNESS,
         WELLS, OBSERVATIONS,
-        XMIN, XMAX, YMIN, YMAX,
         BUFFER, SPACING, UMBRA,
         CONFINED, TOL, MAXSTEP)
 

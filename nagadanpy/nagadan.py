@@ -54,7 +54,7 @@ Authors
 
 Version
 -------
-    01 May 2020
+    02 May 2020
 """
 
 import logging
@@ -70,7 +70,7 @@ from nagadanpy.visualize import contour_head
 
 log = logging.getLogger(__name__)
 
-VERSION = '01 May 2020'
+VERSION = '02 May 2020'
 
 
 # -----------------------------------------------
@@ -210,37 +210,18 @@ def nagadan(
     assert(isnumber(tol) and 0 < tol)
     assert(isnumber(maxstep) and 0 < maxstep)
 
-    # Filter out all of the observations that are too close to any
-    # pumping well, and average the duplicate observations.
-    obs = filter_obs(observations, wells, buffer)
-    assert(len(obs) > 6)
-
-    # Set the plot boundaries.
-    if np.isnan(xmin) or np.isnan(xmax) or np.isnan(ymin) or np.isnan(ymax):
-        xmin = np.min([np.min([ob[0] for ob in obs]), np.min([we[0] for we in wells])])
-        xmax = np.max([np.max([ob[0] for ob in obs]), np.max([we[0] for we in wells])])
-        ymin = np.min([np.min([ob[1] for ob in obs]), np.min([we[1] for we in wells])])
-        ymax = np.max([np.max([ob[1] for ob in obs]), np.max([we[1] for we in wells])])
-
-        xborder = (xmax - xmin)/50
-        yborder = (ymax - ymin)/50
-
-        xmin -= xborder
-        xmax += xborder
-        ymin -= yborder
-        ymax += yborder
-
-    xo = np.mean([ob[0] for ob in obs])
-    yo = np.mean([ob[1] for ob in obs])
-
     # Log the run information.
     log_the_run(
         target, npaths, duration,
         base, conductivity, porosity, thickness,
-        wells, obs,
-        xmin, xmax, ymin, ymax,
+        wells, observations,
         buffer, spacing, umbra,
         confined, tol, maxstep)
+
+    # Filter out all of the observations that are too close to any
+    # pumping well, and average the duplicate observations.
+    obs = filter_obs(observations, wells, buffer)
+    assert(len(obs) > 6)
 
     # Create the model
     mo = Model(base, conductivity, porosity, thickness, wells)
@@ -250,6 +231,18 @@ def nagadan(
 
     most_influential_singleton = kldiv_one[0][1]
     most_influential_pair = [kldiv_two[0][1], kldiv_two[0][2]]
+
+    log.info('\n')
+    log.info('Top 10 of the Leave-one-out analysis:')
+    for i in range(min(len(kldiv_one), 10)):
+        log.info('    {0}'.format(kldiv_one[i]))
+
+    log.info('\n')
+    log.info('Top 10 of the Leave-two-out analysis:')
+    for i in range(min(len(kldiv_two), 10)):
+        log.info('    {0}'.format(kldiv_two[i]))
+
+    log.info('\n')
 
     # Define the local backtracing velocity function.
     if confined:
@@ -266,40 +259,79 @@ def nagadan(
     xtarget, ytarget, rtarget = wells[target][0:3]
 
     # Using all of the obs.
-    mo.fit_regional_flow(obs, xo, yo)
-    pf0 = ProbabilityField(spacing, spacing)
+    mo.fit_regional_flow(obs, xtarget, ytarget)
+    pf0 = ProbabilityField(spacing, spacing, xtarget, ytarget)
     compute_capturezone(
         xtarget, ytarget, rtarget, npaths, duration,
         pf0, umbra, tol, maxstep, feval, 1.0)
 
     # Using all of the obs except the most influential singleton.
     obs1 = np.delete(obs, most_influential_singleton, 0)
-    mo.fit_regional_flow(obs1, xo, yo)
-    pf1 = ProbabilityField(spacing, spacing)
+    mo.fit_regional_flow(obs1, xtarget, ytarget)
+    pf1 = ProbabilityField(spacing, spacing, xtarget, ytarget)
     compute_capturezone(
         xtarget, ytarget, rtarget, npaths, duration,
         pf1, umbra, tol, maxstep, feval, 1.0)
 
     # Using all of the obs except the most influential pair.
     obs2 = np.delete(obs, most_influential_pair, 0)
-    mo.fit_regional_flow(obs2, xo, yo)
-    pf2 = ProbabilityField(spacing, spacing)
+    mo.fit_regional_flow(obs2, xtarget, ytarget)
+    pf2 = ProbabilityField(spacing, spacing, xtarget, ytarget)
     compute_capturezone(
         xtarget, ytarget, rtarget, npaths, duration,
         pf2, umbra, tol, maxstep, feval, 1.0)
+
+    # Compute the capture zone statistics.
+    Xmin = min([pf0.xmin, pf1.xmin, pf2.xmin])
+    Xmax = max([pf0.xmax, pf1.xmax, pf2.xmax])
+    Ymin = min([pf0.ymin, pf1.ymin, pf2.ymin])
+    Ymax = max([pf0.ymax, pf1.ymax, pf2.ymax])
+
+    pf0.expand(Xmin, Xmax, Ymin, Ymax)
+    pf1.expand(Xmin, Xmax, Ymin, Ymax)
+    pf2.expand(Xmin, Xmax, Ymin, Ymax)
+
+    areaA = sum(sum(pf0.pgrid > 0)) * spacing**2
+    areaB = sum(sum(pf1.pgrid > 0)) * spacing**2
+    areaC = sum(sum(pf2.pgrid > 0)) * spacing**2
+
+    areaAB = sum(sum((pf0.pgrid > 0) & (pf1.pgrid > 0))) * spacing**2
+    areaAC = sum(sum((pf0.pgrid > 0) & (pf2.pgrid > 0))) * spacing**2
+    areaBC = sum(sum((pf1.pgrid > 0) & (pf2.pgrid > 0))) * spacing**2
+
+    log.info('\n')
+    log.info('CAPTURE ZONE STATISTICS:')
+    log.info('    A = capture zone using all observations')
+    log.info('    B = capture zone without most influenetial singleton')
+    log.info('    C = capture zone without most influenetial pair')
+    log.info('\n')
+    log.info('    area(A)      = {0:.2f}'.format(areaA))
+    log.info('    area(B)      = {0:.2f}'.format(areaB))
+    log.info('    area(C)      = {0:.2f}'.format(areaC))
+    log.info('\n')
+    log.info('    area(A & B)  = {0:.2f}'.format(areaAB))
+    log.info('    area(A & !B) = {0:.2f}'.format(areaA - areaAB))
+    log.info('    area(B & !A) = {0:.2f}'.format(areaB - areaAB))
+    log.info('\n')
+    log.info('    area(A & C)  = {0:.2f}'.format(areaAC))
+    log.info('    area(A & !C) = {0:.2f}'.format(areaA - areaAC))
+    log.info('    area(C & !A) = {0:.2f}'.format(areaC - areaAC))
+    log.info('\n')
+    log.info('    area(B & C)  = {0:.2f}'.format(areaBC))
+    log.info('    area(B & !C) = {0:.2f}'.format(areaB - areaBC))
+    log.info('    area(C & !B) = {0:.2f}'.format(areaC - areaBC))
+    log.info('\n')
 
     # -----------------------------------------------------
     # GRAPHICAL OUTPUT STARTS HERE
     # -----------------------------------------------------
 
+    # ---------------------------------
+    # PLOT 1 of 6: Locations map.
     plt.figure(1)
     plt.clf()
-
-    # PLOT 1 of 6: Locations map.
-    plt.subplot(2, 3, 1)
     plt.axis('equal')
 
-    contour_head(mo, xmin, xmax, ymin, ymax, 100, 100)
     plot_locations(plt, target, wells, obs)
 
     i = most_influential_singleton
@@ -310,14 +342,19 @@ def nagadan(
         plt.plot(obs[i][0], obs[i][1], 'D', markeredgecolor='k',
                  fillstyle='none', markersize=14)
 
+    xmin, xmax, ymin, ymax = plt.axis()
+    contour_head(mo, xmin, xmax, ymin, ymax, 100, 100)
+
     plt.xlabel('UTM Easting [m]')
     plt.ylabel('UTM Northing [m]')
     plt.title('Locations', fontsize=14)
     plt.grid(True)
-    plt.axis([xmin, xmax, ymin, ymax])
 
+    # ---------------------------------
     # PLOT 2 of 6: kldiv_one
-    plt.subplot(2, 3, 2)
+    plt.figure(2)
+    plt.clf()
+
     plt.scatter(range(len(kldiv_one)), [p[0] for p in kldiv_one])
 
     plt.xlabel('Sort Order')
@@ -325,8 +362,11 @@ def nagadan(
     plt.title('Leave One Out', fontsize=14)
     plt.grid(True)
 
+    # ---------------------------------
     # PLOT 3 of 6: kldiv_two
-    plt.subplot(2, 3, 3)
+    plt.figure(3)
+    plt.clf()
+
     plt.scatter(range(len(kldiv_two)), [p[0] for p in kldiv_two])
 
     plt.xlabel('Sort Order')
@@ -334,8 +374,10 @@ def nagadan(
     plt.title('Leave Two Out', fontsize=14)
     plt.grid(True)
 
+    # ---------------------------------
     # PLOT 4 of 6: probability contour plots.
-    plt.subplot(2, 3, 4)
+    plt.figure(4)
+    plt.clf()
     plt.axis('equal')
 
     X = np.linspace(pf0.xmin, pf0.xmax, pf0.ncols)
@@ -350,14 +392,16 @@ def nagadan(
     plt.ylabel('UTM Northing [m]')
     plt.title('All Data', fontsize=14)
     plt.grid(True)
-    plt.axis([xmin, xmax, ymin, ymax])
+    plt.axis([Xmin, Xmax, Ymin, Ymax])
 
     [XX, YY] = np.meshgrid(X, Y)
     XX = np.reshape(XX[Z > 0.0], -1)
     YY = np.reshape(YY[Z > 0.0], -1)
 
+    # ---------------------------------
     # PLOT 5 of 6:
-    plt.subplot(2, 3, 5)
+    plt.figure(5)
+    plt.clf()
     plt.axis('equal')
 
     X = np.linspace(pf1.xmin, pf1.xmax, pf1.ncols)
@@ -371,12 +415,14 @@ def nagadan(
 
     plt.xlabel('UTM Easting [m]')
     plt.ylabel('UTM Northing [m]')
-    plt.title('Without #1 Singleton', fontsize=14)
+    plt.title('Without Most Influential Singleton', fontsize=14)
     plt.grid(True)
-    plt.axis([xmin, xmax, ymin, ymax])
+    plt.axis([Xmin, Xmax, Ymin, Ymax])
 
+    # ---------------------------------
     # PLOT 6 of 6:
-    plt.subplot(2, 3, 6)
+    plt.figure(6)
+    plt.clf()
     plt.axis('equal')
 
     X = np.linspace(pf2.xmin, pf2.xmax, pf2.ncols)
@@ -390,8 +436,9 @@ def nagadan(
 
     plt.xlabel('UTM Easting [m]')
     plt.ylabel('UTM Northing [m]')
-    plt.title('Without #1 Pair', fontsize=14)
+    plt.title('Without Most Influential Pair', fontsize=14)
     plt.grid(True)
+    plt.axis([Xmin, Xmax, Ymin, Ymax])
 
 
 # -------------------------------------
@@ -478,7 +525,7 @@ def filter_obs(observations, wells, buffer):
         if flag:
             obs.append(ob)
         else:
-            log.info(' observation removed: {0}'.format(ob))
+            log.info('observation removed: {0}'.format(ob))
 
     # Replace any duplicate observations with their weighted average.
     # Assume that the duplicate errors are statistically independent.
@@ -497,15 +544,18 @@ def filter_obs(observations, wells, buffer):
             for k in range(i, j):
                 num += obs[k][2]/obs[k][3]**2
                 den += 1/obs[k][3]**2
-                log.info(' duplicate observation: {0}'.format(obs[k]))
+                log.info('duplicate observation: {0}'.format(obs[k]))
             retained_obs.append((obs[i][0], obs[i][1], num/den, np.sqrt(1/den)))
         else:
             retained_obs.append(obs[i])
         i = j
 
+    log.info('\n')
     log.info('active observations: {0}'.format(len(retained_obs)))
     for ob in retained_obs:
         log.info('     {0}'.format(ob))
+
+    log.info('\n')
 
     return retained_obs
 
@@ -515,7 +565,6 @@ def log_the_run(
         target, npaths, duration,
         base, conductivity, porosity, thickness,
         wells, observations,
-        xmin, xmax, ymin, ymax,
         buffer, spacing, umbra,
         confined, tol, maxstep):
 
@@ -537,10 +586,6 @@ def log_the_run(
     log.info(' conductivity  = {0}'.format(conductivity))
     log.info(' porosity      = {0}'.format(porosity))
     log.info(' thickness     = {0:.2f}'.format(thickness))
-    log.info(' xmin          = {0:.2f}'.format(xmin))
-    log.info(' xmax          = {0:.2f}'.format(xmax))
-    log.info(' ymin          = {0:.2f}'.format(ymin))
-    log.info(' ymax          = {0:.2f}'.format(ymax))
     log.info(' buffer        = {0:.2f}'.format(buffer))
     log.info(' spacing       = {0:.2f}'.format(spacing))
     log.info(' umbra         = {0:.2f}'.format(umbra))
@@ -548,12 +593,14 @@ def log_the_run(
     log.info(' tol           = {0:.2f}'.format(tol))
     log.info(' maxstep       = {0:.2f}'.format(maxstep))
 
+    log.info('\n')
     log.info(' wells: {0}'.format(len(wells)))
     for we in wells:
         log.info('     {0}'.format(we))
 
+    log.info('\n')
     log.info(' observations: {0}'.format(len(observations)))
     for ob in observations:
         log.info('     {0}'.format(ob))
 
-    log.info(' ')
+    log.info('\n')

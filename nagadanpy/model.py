@@ -34,7 +34,7 @@ Authors
 
 Version
 -------
-    30 April 2020
+    02 Model 2020
 """
 
 import logging
@@ -407,11 +407,11 @@ class Model:
                     The y-coordinate of the observation [m].
 
                 z_ev : float
-                    The expected value of the observed static water 
+                    The expected value of the observed static water
                     level elevation [m].
 
                 z_std : float
-                    The standard deviation of the observed static water 
+                    The standard deviation of the observed static water
                     level elevation [m].
 
         xo : float, optional
