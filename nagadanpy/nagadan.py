@@ -262,7 +262,7 @@ def nagadan(
     pf0 = ProbabilityField(spacing, spacing, xtarget, ytarget)
     compute_capturezone(
         xtarget, ytarget, rtarget, npaths, duration,
-        pf0, umbra, tol, maxstep, feval, 1.0)
+        pf0, umbra, 1.0, tol, maxstep, feval)
 
     # Using all of the obs except the most influential singleton.
     obs1 = np.delete(obs, most_influential_singleton, 0)
@@ -270,7 +270,7 @@ def nagadan(
     pf1 = ProbabilityField(spacing, spacing, xtarget, ytarget)
     compute_capturezone(
         xtarget, ytarget, rtarget, npaths, duration,
-        pf1, umbra, tol, maxstep, feval, 1.0)
+        pf1, umbra, 1.0, tol, maxstep, feval)
 
     # Using all of the obs except the most influential pair.
     obs2 = np.delete(obs, most_influential_pair, 0)
@@ -278,7 +278,7 @@ def nagadan(
     pf2 = ProbabilityField(spacing, spacing, xtarget, ytarget)
     compute_capturezone(
         xtarget, ytarget, rtarget, npaths, duration,
-        pf2, umbra, tol, maxstep, feval, 1.0)
+        pf2, umbra, 1.0, tol, maxstep, feval)
 
     # Compute the capture zone statistics.
     Xmin = min([pf0.xmin, pf1.xmin, pf2.xmin])

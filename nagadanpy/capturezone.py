@@ -12,8 +12,9 @@ Exceptions
 Functions
 ---------
     compute_capturezone(
-            xw, yw, rw, npaths, duration,
-            pf, umbra, tol, maxstep, feval, weight)
+            xtarget, ytarget, rtarget, npaths, duration,
+            pfield, umbra, weight,
+            tol, maxstep, feval)
         Compute the capture zone for the target well.
 
     compute_backtrace(xys, duration, tol, maxstep, feval)
@@ -48,25 +49,41 @@ log = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
 def compute_capturezone(
-        xw, yw, rw, npaths, duration,
-        pf, umbra, tol, maxstep, feval, weight):
+        xtarget, ytarget, rtarget, npaths, duration,
+        pfield, umbra, weight,
+        tol, maxstep, feval):
     """
     Compute the capture zone for the target well.
 
     Parameters
     ----------
-    xw : float
+    xtarget : float
         The x-coordinate of the well [m].
 
-    yw : float
+    ytarget : float
         The y-coordinate of the well [m].
 
-    rw : float
-        The radius of the well [m]. 0 < rw.
+    rtarget : float
+        The radius of the well [m]. 0 < rtarget.
+
+    npaths : int
+        The minimum number of paths (starting points for the backtraces)
+        to generate uniformly around the target well. 0 < npaths.
 
     duration : float
         The duration of the capture zone [d]; e.g. a ten year capture zone
         will have a duration = 10*365.25. 0 < duration.
+
+    pfield : probabilityfield
+        The auto-expanding, axis-aligned, grid-based probability field.
+
+    weight : float
+        The pseudo-probability associated with the capture zone.
+
+    umbra : float
+        The vector-to-raster range [m] when mapping a particle path onto
+        the ProbabilityField grids. If a grid node is within umbra of a
+        particle path, it is marked as visited.
 
     tol : float
         The tolerance [m] for the local error when solving the backtrace
@@ -76,6 +93,9 @@ def compute_capturezone(
     maxstep : float
         The maximum allowed step in space [m] when solving the backtrace
         differential equation. This is NOT the maximum time step. 0 < maxstep.
+
+    feval : function
+        The backtracing velocity function: [Vx, Vy] = feval(x, y).
 
     Returns
     -------
@@ -91,16 +111,16 @@ def compute_capturezone(
 
     # Compute the backtraces.
     for theta in np.linspace(0, 2*np.pi, npaths+1)[0:-1]:
-        xs = (rw + STEPAWAY) * np.cos(theta) + xw
-        ys = (rw + STEPAWAY) * np.sin(theta) + yw
+        xs = (rtarget + STEPAWAY) * np.cos(theta) + xtarget
+        ys = (rtarget + STEPAWAY) * np.sin(theta) + ytarget
 
         vertices = compute_backtrace(xs, ys, duration, tol, maxstep, feval)
         x = [v[0] for v in vertices]
         y = [v[1] for v in vertices]
-        pf.rasterize(x, y, umbra)
+        pfield.rasterize(x, y, umbra)
 
     # Register the backtraces.
-    pf.register(weight)
+    pfield.register(weight)
 
 
 # -------------------------------------
@@ -131,7 +151,7 @@ def compute_backtrace(xs, ys, duration, tol, maxstep, feval):
         differential equation. 0 < maxstep.
 
     feval : function
-        The backtracing velocity function.
+        The backtracing velocity function: [Vx, Vy] = feval(x, y).
 
     Returns
     -------
