@@ -440,7 +440,7 @@ def nagadan(
     plt.axis([Xmin, Xmax, Ymin, Ymax])
 
 
-# -------------------------------------
+# ------------------------------------------------------------------------------
 def plot_locations(plt, target, wells, obs):
 
     # Plot the wells as o markers.
@@ -458,7 +458,7 @@ def plot_locations(plt, target, wells, obs):
     plt.plot(xo, yo, 'P', markeredgecolor='k', markerfacecolor='w')
 
 
-# -------------------------------------
+# ------------------------------------------------------------------------------
 def filter_obs(observations, wells, buffer):
     """
     Partition the obs into retained and removed. An observation is
@@ -559,7 +559,7 @@ def filter_obs(observations, wells, buffer):
     return retained_obs
 
 
-# -------------------------------------
+# ------------------------------------------------------------------------------
 def log_the_run(
         target, npaths, duration,
         base, conductivity, porosity, thickness,

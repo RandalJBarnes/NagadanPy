@@ -14,19 +14,9 @@ Authors
 
 Version
 -------
-    02 May 2020
+    03 May 2020
 """
 
-from datetime import datetime
-import logging
-import time
-
-from nagadanpy.nagadan import nagadan
-
-
-# ======================================
-# Here are the necessary data.
-# ======================================
 PROJECTNAME = 'Long Prairie example'
 
 TARGET = 0
@@ -123,36 +113,3 @@ OBSERVATIONS = [
     (354864, 5088290, 397.2, 2.0),
     (355249, 5088248, 397.1, 2.0)
     ]
-
-# ======================================
-# Here is the form of the base call.
-# ======================================
-if __name__ == "__main__":
-    # execute only if run as a script
-
-    # Initialize the run.
-    start_time = time.time()
-
-    logging.basicConfig(
-        filename='NagadanPy' + datetime.now().strftime('%Y%m%dT%H%M%S') + '.log',
-        filemode='w',
-        level=logging.INFO)
-    log = logging.getLogger(__name__)
-
-    log.info(' Project: {0}'.format(PROJECTNAME))
-    log.info(' Run date: {0}'.format(time.asctime()))
-
-    # Call the working function.
-    nagadan(
-        TARGET, NPATHS, DURATION,
-        BASE, CONDUCTIVITY, POROSITY, THICKNESS,
-        WELLS, OBSERVATIONS,
-        BUFFER, SPACING, UMBRA,
-        CONFINED, TOL, MAXSTEP)
-
-    # Shutdown the run.
-    elapsedtime = time.time() - start_time
-    log.info('Total elapsed time = %.4f seconds' % elapsedtime)
-    logging.shutdown()
-
-    print('\n\nTotal elapsed time = %.4f seconds' % elapsedtime)

@@ -58,13 +58,13 @@ def compute_capturezone(
     Parameters
     ----------
     xtarget : float
-        The x-coordinate of the well [m].
+        The x-coordinate of the target well [m].
 
     ytarget : float
-        The y-coordinate of the well [m].
+        The y-coordinate of the target well [m].
 
     rtarget : float
-        The radius of the well [m]. 0 < rtarget.
+        The radius of the target well [m]. 0 < rtarget.
 
     npaths : int
         The minimum number of paths (starting points for the backtraces)
