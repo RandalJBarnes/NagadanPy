@@ -14,22 +14,14 @@ Author
 
 Version
 -------
-    30 April 2020
+    05 May 2020
 """
 
 import math
 import numpy as np
 
 import nagadanpy.boomerang
-
-# from nagadanpy.aquifer import Aquifer
 from nagadanpy.boomerang import compute_kldiv
-# from nagadanpy.boomerang import boomerang
-# from nagadanpy.herd import Herd
-# from nagadanpy.model import Model
-# from nagadanpy.regionalflow import RegionalFlow
-# from nagadanpy.well import Well
-
 
 """
 def test_boomerang():
@@ -82,6 +74,7 @@ def test_boomerang_compute_kldiv():
         [13, 6, 8, -9, 61, -3],
         [2, 6, 12, -15, -3, 58]
         ])
+    covf_inv = np.linalg.inv(covf)
 
     mug = np.array([[-1], [153], [-77], [37], [-23], [112]])
     covg = np.array([
@@ -93,5 +86,5 @@ def test_boomerang_compute_kldiv():
         [-3, 7, -31, -6, -16, 87]
         ])
 
-    kldiv = compute_kldiv(muf, covf, mug, covg)
+    kldiv = compute_kldiv(muf, covf, covf_inv, mug, covg)
     assert math.isclose(kldiv, 1039.01850317409, rel_tol=1e-6)

@@ -14,7 +14,7 @@ Author
 
 Version
 -------
-    01 May 2020
+    05 May 2020
 """
 
 import numpy as np
@@ -77,7 +77,7 @@ def test_model_compute_velocity(my_model):
 
 
 def test_model_compute_fit(my_model):
-    ev_true = np.array([0.9916, 0.9956, 0.9422, 171.85, 165.8, 9667.8])
+    ev_true = np.array([[0.9916], [0.9956], [0.9422], [171.85], [165.8], [9667.8]])
     x_true, y_true = [58.52, 52.76]
     cov_true = np.array([
         [3.195e-05, -2.031e-06, -2.437e-06,  2.176e-04, -3.117e-05, -1.340e-02],
@@ -114,9 +114,7 @@ def test_model_compute_fit(my_model):
         [86.00, 26.00, 673.24, 0.10],
         [90.00, 57.00, 734.72, 0.10]])
 
-    coef_ev, coef_cov = my_model.fit_regional_flow(obs)
+    coef_ev, coef_cov = my_model.fit_regional_flow(obs, x_true, y_true)
 
-    assert np.isclose(my_model.xo, x_true, rtol=0.001)
-    assert np.isclose(my_model.yo, y_true, rtol=0.001)
     assert np.allclose(coef_ev, ev_true, rtol=0.001)
     assert np.allclose(coef_cov, cov_true, rtol=0.001)

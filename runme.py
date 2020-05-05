@@ -17,7 +17,9 @@ Version
 """
 
 from datetime import datetime
+import importlib
 import logging
+import os
 import time
 
 import cProfile
@@ -26,7 +28,6 @@ from pstats import SortKey
 
 from nagadanpy.nagadan import nagadan
 
-import importlib
 
 # ------------------------------------------------------------------------------
 def main(module_name):
@@ -41,8 +42,11 @@ def main(module_name):
     # Initialize the run.
     start_time = time.time()
 
+    if not os.path.exists('logs'):
+        os.makedirs('logs')    
+
     logging.basicConfig(
-        filename='NagadanPy' + datetime.now().strftime('%Y%m%dT%H%M%S') + '.log',
+        filename='logs\\NagadanPy' + datetime.now().strftime('%Y%m%dT%H%M%S') + '.log',
         filemode='w',
         level=logging.INFO)
     log = logging.getLogger(__name__)
@@ -63,7 +67,7 @@ def main(module_name):
     log.info('Total elapsed time = %.4f seconds' % elapsedtime)
     logging.shutdown()
 
-    print('\n\nTotal elapsed time = %.4f seconds' % elapsedtime)
+    print('\nTotal elapsed time = %.4f seconds' % elapsedtime)
 
 
 # ------------------------------------------------------------------------------

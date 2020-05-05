@@ -1,5 +1,7 @@
 # Local stuff
 *.log
+references/
+logs/
 TeXAux/
 
 # Byte-compiled / optimized / DLL files

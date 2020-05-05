@@ -54,12 +54,14 @@ Authors
 
 Version
 -------
-    02 May 2020
+    05 May 2020
 """
 
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
+import statsmodels.stats.outliers_influence as smso
+import statsmodels.api as sm
 
 from nagadanpy.boomerang import compute_boomerang
 from nagadanpy.capturezone import compute_capturezone
@@ -67,9 +69,10 @@ from nagadanpy.model import Model
 from nagadanpy.probabilityfield import ProbabilityField
 from nagadanpy.visualize import contour_head
 
+
 log = logging.getLogger(__name__)
 
-VERSION = '02 May 2020'
+VERSION = '05 May 2020'
 
 
 # -----------------------------------------------
@@ -222,11 +225,28 @@ def nagadan(
     obs = filter_obs(observations, wells, buffer)
     assert(len(obs) > 6)
 
+    # Set the target.
+    xtarget, ytarget, rtarget = wells[target][0:3]
+
     # Create the model
     mo = Model(base, conductivity, porosity, thickness, wells)
 
+    # General influence statistics
+    WA, Wb = mo.construct_fit(obs, xtarget, ytarget)
+
+    ols_model = sm.OLS(Wb, WA, hasconst=True)
+    ols_results = ols_model.fit()
+    ols_influence = smso.OLSInfluence(ols_results)
+
+    print(ols_results.summary())
+    print('mse_resid = {0}'.format(ols_results.mse_resid))
+    print(ols_influence.summary_frame())
+
     # Compute the full leave-one-out and leave-two-out boomerang analyses.
-    kldiv_one, kldiv_two = compute_boomerang(mo, obs)
+    kldiv_one, kldiv_two = compute_boomerang(WA, Wb)
+
+    kldiv_one.sort(reverse=True)
+    kldiv_two.sort(reverse=True)
 
     most_influential_singleton = kldiv_one[0][1]
     most_influential_pair = [kldiv_two[0][1], kldiv_two[0][2]]
@@ -242,6 +262,7 @@ def nagadan(
         log.info('    {0}'.format(kldiv_two[i]))
 
     log.info('\n')
+    return
 
     # Define the local backtracing velocity function.
     if confined:
@@ -253,10 +274,7 @@ def nagadan(
             Vx, Vy = mo.compute_velocity(xy[0], xy[1])
             return np.array([-Vx, -Vy])
 
-    # Compute the three capture zones around the target well
-    # using a common local origin.
-    xtarget, ytarget, rtarget = wells[target][0:3]
-
+    # Compute the three capture zones around the target well --- 
     # Using all of the obs.
     mo.fit_regional_flow(obs, xtarget, ytarget)
     pf0 = ProbabilityField(spacing, spacing, xtarget, ytarget)
@@ -439,6 +457,7 @@ def nagadan(
     plt.grid(True)
     plt.axis([Xmin, Xmax, Ymin, Ymax])
 
+    plt.show()
 
 # ------------------------------------------------------------------------------
 def plot_locations(plt, target, wells, obs):
@@ -449,7 +468,7 @@ def plot_locations(plt, target, wells, obs):
     plt.plot(xw, yw, 'o', markeredgecolor='k', markerfacecolor='w')
 
     # Plot the target well as a star marker.
-    xtarget, ytarget, rtarget = wells[target][0:3]
+    xtarget, ytarget = wells[target][0:2]
     plt.plot(xtarget, ytarget, '*', markeredgecolor='k', markerfacecolor='w', markersize=12)
 
     # Plot the retained observations as fat + markers.

@@ -34,7 +34,7 @@ Authors
 
 Version
 -------
-    02 Model 2020
+    05 Model 2020
 """
 
 import logging
@@ -104,6 +104,9 @@ class Model:
     compute_potential(x, y):
         Computes the discharge potential [m^3/d] at (x, y).
 
+    compute_potential_wells_only(self, x, y):
+        Computes the discharge potential [m^3/d] at (x, y) due to the wells only.
+
     compute_discharge(x, y):
         Compute the vertically integrated discharge [m^2/d] at (x, y).
 
@@ -113,13 +116,15 @@ class Model:
     compute_velocity(x, y):
         Compute the vertically averaged seepage velocity vector [m/d] at (x, y).
 
-    compute_potential_fosm(self, elevation_ev, elevation_std):
-        Compute the avg and std of the discharge potential from the avg and std
-        of the elevation, using a first-order-second-moment approximation.
+    fit_coefficients(self, obs, xo, yo):
+        Fit the regionalflow's coefficient using weighted least squares.    
 
-    fit_coefficients(self, obs):
-        Set the regionalflow's origin to the cetroid of the obs, then
-        fit the regionalflow's coefficient using weighted least squares.
+    construct_fit(self, obs):
+        Construct the weighted least squares matrices for fitting the regional flow.
+
+    @staticmethod
+    compute_fit(WA, Wb)
+        Compute the weighted least squares fit for the regional flow coefficients.
     """
 
     # ---------------------------------
@@ -158,13 +163,11 @@ class Model:
 
         xo : float, optional
             The x-coordinate of the local origin [m] for the regional flow
-            component of the Oneka model. Generally, this is computed during
-            the model fitting process. Default is 0.
+            component of the Oneka model. Default is 0.
 
         yo : float, optional
             The y-coordinate of the local origin [m] for the regional flow
-            component of the Oneka model. Generally, this is computed during
-            the model fitting process. Default is 10.
+            component of the Oneka model. Default is 0.
 
         coef : ndarray, dtype=double, shape=(6, ), optional
             The six defining coefficients, A through F, for the regional flow
@@ -182,6 +185,15 @@ class Model:
         self.xo = xo
         self.yo = yo
         self.coef = coef
+
+    # ---------------------------------
+    @property
+    def coef(self):
+        return self._coef
+
+    @coef.setter
+    def coef(self, coef):
+        self._coef = np.reshape(coef, [6, ])
 
     # ---------------------------------
     def __repr__(self):
@@ -219,7 +231,32 @@ class Model:
                      + self.coef[3]*dx + self.coef[4]*dy
                      + self.coef[5])
 
+        # Add the contribution from the wells.
+        potential += self.compute_potential_wells_only(x, y)
+
+        return potential
+
+    # ---------------------------------
+    def compute_potential_wells_only(self, x, y):
+        """
+        Computes the discharge potential [m^3/d] at (x, y) due to the wells only.
+
+        Parameters
+        ----------
+        x : float
+            The x-coordinate of the location [m].
+
+        y : float
+            The y-coordinate of the location [m].
+
+        Returns
+        -------
+        potential : float
+            The discharge potential [m^3/d].
+        """
+
         # Compute the contribution from the wells.
+        potential = 0.0
         for well in self.wells:
             dx = x - well[0]
             dy = y - well[1]
@@ -390,10 +427,9 @@ class Model:
         return (Vx, Vy)
 
     # ---------------------------------
-    def fit_regional_flow(self, obs, xo=np.nan, yo=np.nan):
+    def fit_regional_flow(self, obs, xo, yo):
         """
-        Set the regionalflow's origin to the cetroid of the obs, then
-        fit the regionalflow's coefficient using weighted least squares.
+        Fit the regionalflow's coefficient using weighted least squares.
 
         Parameters
         ----------
@@ -413,18 +449,18 @@ class Model:
                     The standard deviation of the observed static water
                     level elevation [m].
 
-        xo : float, optional
+        xo : float
             The x-coordinate of the local origin [m] for the regional flow
             component of the Oneka model.
 
-        yo : float, optional
+        yo : float
             The y-coordinate of the local origin [m] for the regional flow
             component of the Oneka model.
 
         Returns
         -------
         An ordered pair of ndarray (coef_ev, coef_cov).
-            coef_ev : ndarray, shape=(6, ), dtype=float
+            coef_ev : ndarray, shape=(6, 1), dtype=float
                 The expected value vector for the model's fitted regional
                 flow coefficients.
 
@@ -444,31 +480,78 @@ class Model:
             observations will cause a np.linalg.LinAlgError.
         """
 
-        # Initialize the coefficients to all 0's so that calls to
-        # compute_potential during fitting include the wells only.
-        self.coef = np.zeros(6, )
+        # Preallocate space for the fitting arrays.
+        nobs = len(obs)
+        WA = np.zeros([nobs, 6])
+        Wb = np.zeros([nobs, 1])
 
-        # Set the local origin of the regional flow. In no origin is given
-        # in the arguments, then the centroid of the observations is used.
-        if np.isnan(xo) or np.isnan(yo):
-            xo = np.mean([ob[0] for ob in obs])
-            yo = np.mean([ob[1] for ob in obs])
+        # Construct the weight least squares problem.
+        (WA, Wb) = self.construct_fit(obs, xo, yo)
 
+        # Solve the least squares problem.
+        coef_ev, coef_cov = self.compute_fit(WA, Wb)
+
+        # Set the regional flow parameters in the model.
         self.xo = xo
         self.yo = yo
+        self.coef = coef_ev
+
+        return(coef_ev, coef_cov)
+
+    # ---------------------------------
+    def construct_fit(self, obs, xo, yo):
+        """
+        Construct the weighted least squares matrices for fitting the regional flow.
+
+        Parameters
+        ----------
+        obs : list of observation tuples.
+            Each observation tuple contains four values: (x, y, z_ev, z_std).
+                x : float
+                    The x-coordinate of the observation [m].
+
+                y : float
+                    The y-coordinate of the observation [m].
+
+                z_ev : float
+                    The expected value of the observed static water
+                    level elevation [m].
+
+                z_std : float
+                    The standard deviation of the observed static water
+                    level elevation [m].
+
+        xo : float
+            The x-coordinate of the local origin [m] for the regional flow
+            component of the Oneka model.
+
+        yo : float
+            The y-coordinate of the local origin [m] for the regional flow
+            component of the Oneka model.
+
+        Returns
+        -------
+        An ordered pair of ndarray (WA, Wb).
+            WA : ndarray, shape=(nobs, 6), dtype=float
+                The product of the (nobs x nobs) diagonl weight matrix W times
+                the (nobs x 6) regressors matrix A.
+
+            Wb : ndarray, shape=(nobs, 1), dtype=float.
+                The prodcut of the (nobs x nobs) diagonal weight matrix W times
+                the (nobs x 1) response variable.
+        """
 
         # Preallocate space for the fitting arrays.
         nobs = len(obs)
-        A = np.zeros([nobs, 6])
-        b = np.zeros([nobs, 1])
-        W = np.zeros([nobs, nobs])
+        WA = np.zeros([nobs, 6])
+        Wb = np.zeros([nobs, 1])
 
-        # Set up the least sqaures problem.
+        # Set up the least squares problem.
         for i in range(nobs):
             x, y, z_ev, z_std = obs[i]
 
             # Compute the expected values and standard deviations of the
-            # discharge potentails at the observation locations using a
+            # discharge potentials at the observation locations using a
             # first-order-second-moment approximation.
             head = z_ev - self.base
             if head >= self.thickness:
@@ -480,28 +563,49 @@ class Model:
             else:
                 raise RangeError("model.fit_coeficient: elevation < base")
 
-            A[i, :] = [(x-xo)**2, (y-yo)**2, (x-xo)*(y-yo), (x-xo), (y-yo), 1]
-            b[i] = pot_ev - self.compute_potential(x, y)
-            W[i, i] = 1/pot_std
+            dx = x - xo
+            dy = y - yo
+            WA[i, :] = np.array([dx**2, dy**2, dx*dy, dx, dy, 1])/pot_std
+
+            Wb[i] = (pot_ev - self.compute_potential_wells_only(x, y))/pot_std
+
+        return (WA, Wb)
+
+    # ---------------------------------
+    @staticmethod
+    def compute_fit(WA, Wb):
+        """
+        Compute the weighted least squares fit for the regional flow coefficients.
+
+        Parameters
+        ----------
+        WA : ndarray, shape=(nobs, 6), dtype=float
+            The product of the (nobs x nobs) diagonl weight matrix W times
+            the (nobs x 6) regressors matrix A.
+
+        Wb : ndarray, shape=(nobs, 1), dtype=float.
+            The prodcut of the (nobs x nobs) diagonal weight matrix W times
+            the (nobs x 1) response variable.
+
+        Returns
+        -------
+        An ordered pair of ndarray (coef_ev, coef_cov).
+            coef_ev : ndarray, shape=(6, 1), dtype=float
+                The expected value vector for the model's fitted regional
+                flow coefficients.
+
+            coef_cov : ndarray, shape=(6, 6), dtype=float.
+                The variance/covariance matrix for the model's fitted
+                regional flow coefficients.
+        """
 
         # Solve the least squares problem.
-        WA = np.matmul(W, A)
-        Wb = np.matmul(W, b)
-
         try:
-            coef_ev, sse = np.linalg.lstsq(WA, Wb, rcond=-1)[0:2]
+            coef_ev = np.linalg.lstsq(WA, Wb, rcond=-1)[0]
         except np.linalg.LinAlgError:
-            log.error(' lstsq: failed')
+            log.error(' numpy.linalg.lstsq: failed')
             raise
-        else:
-            rmse = np.sqrt(sse/nobs)
-            log.info(' sse = {0}, rmse = {1}'.format(sse, rmse))
 
-        coef_ev = np.reshape(coef_ev, [6, ])
+        coef_cov = np.linalg.inv(np.matmul(WA.T, WA))
 
-        AWWA = np.matmul(WA.T, WA)
-        coef_cov = np.linalg.inv(AWWA)
-
-        self.coef = coef_ev
-
-        return(coef_ev, coef_cov)
+        return (coef_ev, coef_cov)
