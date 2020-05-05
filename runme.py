@@ -13,7 +13,7 @@ Authors
 
 Version
 -------
-    03 May 2020
+    05 May 2020
 """
 
 from datetime import datetime
@@ -45,14 +45,27 @@ def main(module_name):
     if not os.path.exists('logs'):
         os.makedirs('logs')    
 
-    logging.basicConfig(
-        filename='logs\\NagadanPy' + datetime.now().strftime('%Y%m%dT%H%M%S') + '.log',
-        filemode='w',
-        level=logging.INFO)
-    log = logging.getLogger(__name__)
+    # Setup the logging.
+    logger = logging.getLogger('NagadanPy')
+    logger.setLevel(logging.INFO)
 
-    log.info(' Project: {0}'.format(m.PROJECTNAME))
-    log.info(' Run date: {0}'.format(time.asctime()))
+    # Create file handler which logs all messages.
+    fname='logs\\NagadanPy' + datetime.now().strftime('%Y%m%dT%H%M%S') + '.log'
+    fh = logging.FileHandler(filename=fname)
+    fh.setLevel(logging.INFO)
+
+    # Create console handler with a higher log level
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.WARNING)
+
+    # Add the handlers to logger
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+
+    log = logging.getLogger('NagadanPy')
+
+    log.info('Project: {0}'.format(m.PROJECTNAME))
+    log.info('Run date: {0}'.format(time.asctime()))
 
     # Call the working function.
     nagadan(

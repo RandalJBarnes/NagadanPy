@@ -46,7 +46,7 @@ def compute_boomerang(WA, Wb):
 
     Returns
     -------
-    [kldiv_one, kldiv_two] : pair of lists of tuples
+    (kldiv_one, kldiv_two, kldiv_three) : triple of lists of tuples
 
         kldiv_one is a list of tuples. The tuples result from a leave-one-out
         boomerang analysis. Each tuple takes the form
@@ -58,7 +58,7 @@ def compute_boomerang(WA, Wb):
         Divergence. len(kldiv_one) = nobs.
 
         kldiv_two is a list of tuples. The tuples result from a leave-two-out
-        boomerang analysis. Each tuple take thes form
+        boomerang analysis. Each tuple takes the form
 
             (kldiv, i, j)
 

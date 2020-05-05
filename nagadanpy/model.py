@@ -40,7 +40,7 @@ Version
 import logging
 import numpy as np
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('NagadanPy')
 
 
 class Error(Exception):

@@ -27,14 +27,14 @@ Authors
 
 Version
 -------
-    02 May 2020
+    05 May 2020
 """
 
 import logging
 import math
 import numpy as np
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('NagadanPy')
 
 
 # ---------------------------------------------------------
@@ -217,7 +217,7 @@ class ProbabilityField:
 
             self.total_weight = 0.0
 
-            log.debug(' grids expanded to ({self.nrows}, {self.ncols}).')
+            log.debug('grids expanded to ({self.nrows}, {self.ncols}).')
         else:
             # Determine the new grid geometry.
             nrows = self.nrows

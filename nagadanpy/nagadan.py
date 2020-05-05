@@ -60,8 +60,10 @@ Version
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy
 import statsmodels.stats.outliers_influence as smso
 import statsmodels.api as sm
+import time
 
 from nagadanpy.boomerang import compute_boomerang
 from nagadanpy.capturezone import compute_capturezone
@@ -69,8 +71,7 @@ from nagadanpy.model import Model
 from nagadanpy.probabilityfield import ProbabilityField
 from nagadanpy.visualize import contour_head
 
-
-log = logging.getLogger(__name__)
+log = logging.getLogger('NagadanPy')
 
 VERSION = '05 May 2020'
 
@@ -212,6 +213,9 @@ def nagadan(
     assert((isinstance(tol, int) or isinstance(tol, float)) and 0 < tol)
     assert((isinstance(maxstep, int) or isinstance(maxstep, float)) and 0 < maxstep)
 
+    # Initialize the stopwatch.
+    start_time = time.time()
+
     # Log the run information.
     log_the_run(
         target, npaths, duration,
@@ -223,7 +227,8 @@ def nagadan(
     # Filter out all of the observations that are too close to any
     # pumping well, and average the duplicate observations.
     obs = filter_obs(observations, wells, buffer)
-    assert(len(obs) > 6)
+    nobs = len(obs)
+    assert(nobs > 6)
 
     # Set the target.
     xtarget, ytarget, rtarget = wells[target][0:3]
@@ -238,11 +243,14 @@ def nagadan(
     ols_results = ols_model.fit()
     ols_influence = smso.OLSInfluence(ols_results)
 
-    print(ols_results.summary())
-    print('mse_resid = {0}'.format(ols_results.mse_resid))
-    print(ols_influence.summary_frame())
-
-    # Compute the full leave-one-out and leave-two-out boomerang analyses.
+    log.info('\n')
+    log.info(ols_results.summary())
+    log.info('\n')
+    log.info(ols_influence.summary_frame())
+    log.info('\n')
+    log.info(ols_influence.summary_table())
+    
+    # Compute the exhaustive leave-one-out and leave-two-out boomerang analyses.
     kldiv_one, kldiv_two = compute_boomerang(WA, Wb)
 
     kldiv_one.sort(reverse=True)
@@ -260,9 +268,6 @@ def nagadan(
     log.info('Top 10 of the Leave-two-out analysis:')
     for i in range(min(len(kldiv_two), 10)):
         log.info('    {0}'.format(kldiv_two[i]))
-
-    log.info('\n')
-    return
 
     # Define the local backtracing velocity function.
     if confined:
@@ -318,35 +323,39 @@ def nagadan(
 
     log.info('\n')
     log.info('CAPTURE ZONE STATISTICS:')
-    log.info('    A = capture zone using all observations')
-    log.info('    B = capture zone without most influenetial singleton')
-    log.info('    C = capture zone without most influenetial pair')
-    log.info('\n')
+    log.info('    A = capture zone using all observations.')
+    log.info('    B = capture zone without most influenetial singleton.')
+    log.info('    C = capture zone without most influenetial pair.')
+    log.info('')
     log.info('    area(A)      = {0:.2f}'.format(areaA))
     log.info('    area(B)      = {0:.2f}'.format(areaB))
     log.info('    area(C)      = {0:.2f}'.format(areaC))
-    log.info('\n')
+    log.info('')
     log.info('    area(A & B)  = {0:.2f}'.format(areaAB))
     log.info('    area(A & !B) = {0:.2f}'.format(areaA - areaAB))
     log.info('    area(B & !A) = {0:.2f}'.format(areaB - areaAB))
-    log.info('\n')
+    log.info('')
     log.info('    area(A & C)  = {0:.2f}'.format(areaAC))
     log.info('    area(A & !C) = {0:.2f}'.format(areaA - areaAC))
     log.info('    area(C & !A) = {0:.2f}'.format(areaC - areaAC))
-    log.info('\n')
+    log.info('')
     log.info('    area(B & C)  = {0:.2f}'.format(areaBC))
     log.info('    area(B & !C) = {0:.2f}'.format(areaB - areaBC))
     log.info('    area(C & !B) = {0:.2f}'.format(areaC - areaBC))
-    log.info('\n')
+    log.info('')
+    
+    elapsedtime = time.time() - start_time
+    log.info('Computational elapsed time = %.4f seconds' % elapsedtime)
+    log.info('')
 
     # -----------------------------------------------------
     # GRAPHICAL OUTPUT STARTS HERE
     # -----------------------------------------------------
 
     # ---------------------------------
-    # PLOT 1 of 6: Locations map.
-    plt.figure(1)
-    plt.clf()
+    # PLOT: locations of observation and wells, with contour of head.
+    # ---------------------------------
+    plt.figure()
     plt.axis('equal')
 
     plot_locations(plt, target, wells, obs)
@@ -368,33 +377,31 @@ def nagadan(
     plt.grid(True)
 
     # ---------------------------------
-    # PLOT 2 of 6: kldiv_one
-    plt.figure(2)
-    plt.clf()
-
+    # PLOT: sorted KL divergence from the leave-one-out analysis.
+    # ---------------------------------
+    plt.figure()
     plt.scatter(range(len(kldiv_one)), [p[0] for p in kldiv_one])
 
     plt.xlabel('Sort Order')
     plt.ylabel('KL Divergence [bits]')
-    plt.title('Leave One Out', fontsize=14)
+    plt.title('Leave-One-Out', fontsize=14)
     plt.grid(True)
 
     # ---------------------------------
-    # PLOT 3 of 6: kldiv_two
-    plt.figure(3)
-    plt.clf()
-
+    # PLOT: sorted KL divergence from the leave-two-out analysis.
+    # ---------------------------------
+    plt.figure()
     plt.scatter(range(len(kldiv_two)), [p[0] for p in kldiv_two])
 
     plt.xlabel('Sort Order')
     plt.ylabel('KL Divergence [bits]')
-    plt.title('Leave Two Out', fontsize=14)
+    plt.title('Leave-Two-Out', fontsize=14)
     plt.grid(True)
 
     # ---------------------------------
-    # PLOT 4 of 6: probability contour plots.
-    plt.figure(4)
-    plt.clf()
+    # PLOT: capture zone using all observations.
+    # ---------------------------------
+    plt.figure()
     plt.axis('equal')
 
     X = np.linspace(pf0.xmin, pf0.xmax, pf0.ncols)
@@ -416,9 +423,9 @@ def nagadan(
     YY = np.reshape(YY[Z > 0.0], -1)
 
     # ---------------------------------
-    # PLOT 5 of 6:
-    plt.figure(5)
-    plt.clf()
+    # PLOT: capture zone without the most influential singleton.
+    # ---------------------------------
+    plt.figure()
     plt.axis('equal')
 
     X = np.linspace(pf1.xmin, pf1.xmax, pf1.ncols)
@@ -437,9 +444,9 @@ def nagadan(
     plt.axis([Xmin, Xmax, Ymin, Ymax])
 
     # ---------------------------------
-    # PLOT 6 of 6:
-    plt.figure(6)
-    plt.clf()
+    # PLOT: capture zone without the most influential pair.
+    # ---------------------------------
+    plt.figure()
     plt.axis('equal')
 
     X = np.linspace(pf2.xmin, pf2.xmax, pf2.ncols)
@@ -456,7 +463,83 @@ def nagadan(
     plt.title('Without Most Influential Pair', fontsize=14)
     plt.grid(True)
     plt.axis([Xmin, Xmax, Ymin, Ymax])
+    
+    # ---------------------------------
+    # PLOT: Cook's distance
+    # ---------------------------------
+    plt.figure()
+    cooks_d = ols_influence.cooks_distance[0]
+    plt.bar(range(nobs), cooks_d)
+    left, right = plt.xlim()
+    plt.plot([left, right], [1, 1], 'r', linewidth=3)
 
+    plt.xlabel('Observation index')
+    plt.ylabel("Cook's Distance")
+    plt.title("Cook's Distance", fontsize=14)
+    plt.grid(True)
+
+    # ---------------------------------
+    # PLOT: the leverage (diagonal of the Hat matrix)
+    # ---------------------------------
+    plt.figure()
+    leverage = ols_influence.hat_matrix_diag
+
+    plt.bar(range(nobs), leverage)
+    left, right = plt.xlim()
+
+    threshold = 2*6/nobs
+    plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
+
+    plt.xlabel('Observation index')
+    plt.ylabel('Leverage')
+    plt.title('Leverage', fontsize=14)
+    plt.grid(True)
+
+    # ---------------------------------
+    # PLOT: DFFITS
+    # ---------------------------------
+    plt.figure()
+    dffits = ols_influence.dffits[0]
+
+    plt.bar(range(nobs), dffits)
+    left, right = plt.xlim()
+
+    threshold = 2*np.sqrt(6/nobs)
+    plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
+    plt.plot([left, right], [-threshold, -threshold], 'r', linewidth=3)    
+
+    plt.xlabel('Observation index')
+    plt.ylabel('DFFITS')
+    plt.title('DFFITS', fontsize=14)
+    plt.grid(True)
+
+    # ---------------------------------
+    # PLOT: studentized residuals
+    # ---------------------------------
+    plt.figure()
+    resid = ols_influence.resid_studentized
+
+    plt.bar(range(nobs), resid)
+    left, right = plt.xlim()
+
+    threshold = 2
+    plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
+    plt.plot([left, right], [-threshold, -threshold], 'r', linewidth=3)    
+
+    plt.xlabel('Observation index')
+    plt.ylabel('Studentized Residuals')
+    plt.title('Studentized Residuals', fontsize=14)
+    plt.grid(True)
+
+    # ---------------------------------
+    # PLOT: normal probability plot for the studentized residuals
+    # ---------------------------------
+    plt.figure()
+    scipy.stats.probplot(resid, fit=True, plot=plt)
+    plt.ylabel('Studentized Residuals')
+    plt.title('Normal Probability Plot', fontsize=14)
+    plt.grid(True)
+    
     plt.show()
 
 # ------------------------------------------------------------------------------
@@ -568,12 +651,11 @@ def filter_obs(observations, wells, buffer):
             retained_obs.append(obs[i])
         i = j
 
-    log.info('\n')
+    log.info('')
     log.info('active observations: {0}'.format(len(retained_obs)))
     for ob in retained_obs:
         log.info('     {0}'.format(ob))
-
-    log.info('\n')
+    log.info('')
 
     return retained_obs
 
@@ -586,39 +668,39 @@ def log_the_run(
         buffer, spacing, umbra,
         confined, tol, maxstep):
 
-    log.info('                                                                 ')
-    log.info(' ================================================================')
-    log.info('  NN   N AAAAAA GGGGGG AAAAAA DDDDD  AAAAAA NN   N PPPPPP Y    Y ')
-    log.info('  N N  N A    A G      A    A D    D A    A N N  N P    P  Y  Y  ')
-    log.info('  N  N N AAAAAA G  GGG AAAAAA D    D AAAAAA N  N N PPPPPP   YY   ')
-    log.info('  N   NN A    A G    G A    A D    D A    A N   NN P        Y    ')
-    log.info('  N    N A    A GGGGGG A    A DDDDD  A    A N    N P        Y    ')
-    log.info(' ================================================================')
-    log.info(' Version: {0}'.format(VERSION))
-    log.info('                                                                 ')
-
-    log.info(' target        = {0:d}'.format(target))
-    log.info(' npaths        = {0:d}'.format(npaths))
-    log.info(' duration      = {0:.2f}'.format(duration))
-    log.info(' base          = {0:.2f}'.format(base))
-    log.info(' conductivity  = {0}'.format(conductivity))
-    log.info(' porosity      = {0}'.format(porosity))
-    log.info(' thickness     = {0:.2f}'.format(thickness))
-    log.info(' buffer        = {0:.2f}'.format(buffer))
-    log.info(' spacing       = {0:.2f}'.format(spacing))
-    log.info(' umbra         = {0:.2f}'.format(umbra))
-    log.info(' confined      = {0}'.format(confined))
-    log.info(' tol           = {0:.2f}'.format(tol))
-    log.info(' maxstep       = {0:.2f}'.format(maxstep))
-
     log.info('\n')
-    log.info(' wells: {0}'.format(len(wells)))
+    log.info('================================================================')
+    log.info(' NN   N AAAAAA GGGGGG AAAAAA DDDDD  AAAAAA NN   N PPPPPP Y    Y ')
+    log.info(' N N  N A    A G      A    A D    D A    A N N  N P    P  Y  Y  ')
+    log.info(' N  N N AAAAAA G  GGG AAAAAA D    D AAAAAA N  N N PPPPPP   YY   ')
+    log.info(' N   NN A    A G    G A    A D    D A    A N   NN P        Y    ')
+    log.info(' N    N A    A GGGGGG A    A DDDDD  A    A N    N P        Y    ')
+    log.info('================================================================')
+    log.info('Version: {0}'.format(VERSION))
+    log.info('')
+
+    log.info('target        = {0:d}'.format(target))
+    log.info('npaths        = {0:d}'.format(npaths))
+    log.info('duration      = {0:.2f}'.format(duration))
+    log.info('base          = {0:.2f}'.format(base))
+    log.info('conductivity  = {0}'.format(conductivity))
+    log.info('porosity      = {0}'.format(porosity))
+    log.info('thickness     = {0:.2f}'.format(thickness))
+    log.info('buffer        = {0:.2f}'.format(buffer))
+    log.info('spacing       = {0:.2f}'.format(spacing))
+    log.info('umbra         = {0:.2f}'.format(umbra))
+    log.info('confined      = {0}'.format(confined))
+    log.info('tol           = {0:.2f}'.format(tol))
+    log.info('maxstep       = {0:.2f}'.format(maxstep))
+
+    log.info('')
+    log.info('wells: {0}'.format(len(wells)))
     for we in wells:
-        log.info('     {0}'.format(we))
+        log.info('    {0}'.format(we))
 
-    log.info('\n')
-    log.info(' observations: {0}'.format(len(observations)))
+    log.info('')
+    log.info('observations: {0}'.format(len(observations)))
     for ob in observations:
-        log.info('     {0}'.format(ob))
+        log.info('    {0}'.format(ob))
 
     log.info('\n')
