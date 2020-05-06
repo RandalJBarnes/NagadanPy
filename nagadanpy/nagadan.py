@@ -613,13 +613,18 @@ def filter_obs(observations, wells, buffer):
     Arguments
     ---------
     observations : list
-        A list of observation tuples where the first two fields
-        are x and y:
+        An observation tuple contains four values: (x, y, z_ev, z_std), where
             x : float
                 The x-coordinate of the observation [m].
 
             y : float
                 The y-coordinate of the observation [m].
+
+            z_ev : float
+                The expected value of the observed static water level elevation [m].
+
+            z_std : float
+                The standard deviation of the observed static water level elevation [m].
 
     wells : list
         A list of well tuples where the first two fields of the
@@ -672,7 +677,6 @@ def filter_obs(observations, wells, buffer):
 
     # Replace any duplicate observations with their weighted average.
     # Assume that the duplicate errors are statistically independent.
-    obs.sort()
     retained_obs = []
 
     i = 0
@@ -687,16 +691,25 @@ def filter_obs(observations, wells, buffer):
             for k in range(i, j):
                 num += obs[k][2]/obs[k][3]**2
                 den += 1/obs[k][3]**2
-                log.info('duplicate observation: {0}'.format(obs[k]))
+                log.info('    duplicate observation: {0}'.format(obs[k]))
             retained_obs.append((obs[i][0], obs[i][1], num/den, np.sqrt(1/den)))
+            log.info('averaged observation created: {0}'.format(retained_obs[-1]))
         else:
             retained_obs.append(obs[i])
         i = j
 
     log.info('')
     log.info('active observations: {0}'.format(len(retained_obs)))
-    for ob in retained_obs:
-        log.info('     {0}'.format(ob))
+    for i in range(len(retained_obs)):
+        log.info('     [{0:03d}] {1}'.format(i, retained_obs[i]))
+
+    log.info('')
+    log.info('Note: the index numbers associated with these active')
+    log.info('      observations may differ from the original index')
+    log.info('      numbers. This is a consequence of averaging ')
+    log.info('      duplicates and deleting observations near wells.')
+    log.info('      These new index numbers are used in the subsequent')
+    log.info('      reporting. Be aware!')
 
     return retained_obs
 
