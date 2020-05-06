@@ -13,7 +13,7 @@ Authors
 
 Version
 -------
-    03 May 2020
+    06 May 2020
 """
 
 PROJECTNAME = 'Barnesville example'
@@ -28,12 +28,12 @@ POROSITY = 0.25
 THICKNESS = 100
 
 BUFFER = 100
-SPACING = 10
-UMBRA = 20
+SPACING = 2
+UMBRA = 4
 
 CONFINED = True
 TOL = 1
-MAXSTEP = 20
+MAXSTEP = 5
 
 WELLS = [(0.0, 0.0, 0.2, 312.0)]
 

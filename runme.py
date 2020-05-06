@@ -1,5 +1,5 @@
 """
-
+A simple test driver for the NagadanPy package.
 
 Authors
 -------
@@ -13,7 +13,7 @@ Authors
 
 Version
 -------
-    05 May 2020
+    06 May 2020
 """
 
 from datetime import datetime

@@ -36,11 +36,15 @@ Notes
 -----
 o   This package is a work in progress.
 
-o   We need to think about what events to log.
-
 o   This module currently generates plots using python's matplotlib
     facility. We will remove these plots when we integrate into
     ArcGIS Pro.
+
+References
+----------
+o   David A. Belsley, Edwin Kuh, Roy E. Welsch, 2004, Regression 
+    Diagnostics - Identifying Influential Data and Sources of 
+    Collinearity,  Wiley-Interscience, ISBN: 9780471691174.
 
 Authors
 -------
@@ -54,7 +58,7 @@ Authors
 
 Version
 -------
-    05 May 2020
+    06 May 2020
 """
 
 import logging
@@ -73,7 +77,7 @@ from nagadanpy.visualize import contour_head
 
 log = logging.getLogger('NagadanPy')
 
-VERSION = '05 May 2020'
+VERSION = '06 May 2020'
 
 
 # -----------------------------------------------
@@ -176,7 +180,8 @@ def nagadan(
 
     Notes
     -----
-    o Most of the work is orchestrated by the create_capturezone function.
+    o   Most of the time-consuming work is orchestrated by the 
+        create_capturezone function.
     """
 
     # Validate the arguments.
@@ -244,7 +249,7 @@ def nagadan(
     ols_influence = smso.OLSInfluence(ols_results)
 
     log.info('\n')
-    log.info(ols_results.summary())
+    log.info(ols_results.summary(xname = ['A', 'B', 'C', 'D', 'E', 'F']))
     log.info('\n')
     log.info(ols_influence.summary_frame())
     log.info('\n')
@@ -353,7 +358,58 @@ def nagadan(
     # -----------------------------------------------------
 
     # ---------------------------------
-    # PLOT: locations of observation and wells, with contour of head.
+    # PLOT: studentized residuals at the observation locations. 
+    # ---------------------------------
+    plt.figure()
+    plt.axis('equal')
+
+    plot_locations(plt, target, wells, obs)
+
+    resid = ols_influence.resid_studentized
+    max_resid = max(abs(resid))
+
+    xob = np.array([ob[0] for ob in obs])
+    yob = np.array([ob[1] for ob in obs])
+
+    a = 40 + (40 * abs(resid)/max_resid)**2
+    plt.scatter(xob[resid>0], yob[resid>0], s=a[resid>0], c='b', alpha=0.6)
+    plt.scatter(xob[resid<0], yob[resid<0], s=a[resid<0], c='r', alpha=0.6)
+
+    plt.xlabel('UTM Easting [m]')
+    plt.ylabel('UTM Northing [m]')
+    plt.title('Studentized Residuals', fontsize=14)
+    plt.grid(True)
+
+
+    # ---------------------------------
+    # PLOT: studentized residuals
+    # ---------------------------------
+    plt.figure()
+    resid = ols_influence.resid_studentized
+
+    # Bar plot for the studentized residuals.
+    plt.subplot(1, 2, 1)
+    plt.bar(range(nobs), resid)
+
+    threshold = 2
+    left, right = plt.xlim()
+    plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
+    plt.plot([left, right], [-threshold, -threshold], 'r', linewidth=3)    
+
+    plt.xlabel('Observation index')
+    plt.ylabel('Studentized Residuals')
+    plt.title('Studentized Residuals', fontsize=14)
+    plt.grid(True)
+
+    # Normal probability plot for the studentized residuals.
+    plt.subplot(1, 2, 2)
+    scipy.stats.probplot(resid, fit=True, plot=plt)
+    plt.ylabel('Studentized Residuals')
+    plt.title('Normal Probability Plot for Studentized Residuals', fontsize=14)
+    plt.grid(True)
+
+    # ---------------------------------
+    # PLOT: locations of observation and wells, overlaying the head contours.
     # ---------------------------------
     plt.figure()
     plt.axis('equal')
@@ -368,8 +424,22 @@ def nagadan(
         plt.plot(obs[i][0], obs[i][1], 'D', markeredgecolor='k',
                  fillstyle='none', markersize=14)
 
+    nrows = 100
+    ncols = 100
     xmin, xmax, ymin, ymax = plt.axis()
-    contour_head(mo, xmin, xmax, ymin, ymax, 100, 100)
+    x = np.linspace(xmin, xmax, ncols)
+    y = np.linspace(ymin, ymax, nrows)
+
+    grid = np.zeros((nrows, ncols), dtype=np.double)
+    for i in range(nrows):
+        for j in range(ncols):
+            try:
+                grid[i, j] = mo.compute_head(x[j], y[i])
+            except nagadanpy.model.AquiferError:
+                grid[i, j] = np.nan
+
+    plt.contourf(x, y, grid, cmap='bwr')
+    plt.colorbar()
 
     plt.xlabel('UTM Easting [m]')
     plt.ylabel('UTM Northing [m]')
@@ -377,9 +447,12 @@ def nagadan(
     plt.grid(True)
 
     # ---------------------------------
-    # PLOT: sorted KL divergence from the leave-one-out analysis.
+    # PLOT: sorted KL divergence
     # ---------------------------------
     plt.figure()
+
+    # leave-one-out analysis.
+    plt.subplot(1, 2, 1)
     plt.scatter(range(len(kldiv_one)), [p[0] for p in kldiv_one])
 
     plt.xlabel('Sort Order')
@@ -387,10 +460,8 @@ def nagadan(
     plt.title('Leave-One-Out', fontsize=14)
     plt.grid(True)
 
-    # ---------------------------------
-    # PLOT: sorted KL divergence from the leave-two-out analysis.
-    # ---------------------------------
-    plt.figure()
+    # leave-two-out analysis.
+    plt.subplot(1, 2, 2)
     plt.scatter(range(len(kldiv_two)), [p[0] for p in kldiv_two])
 
     plt.xlabel('Sort Order')
@@ -399,33 +470,19 @@ def nagadan(
     plt.grid(True)
 
     # ---------------------------------
-    # PLOT: capture zone using all observations.
+    # PLOT: capture zones 
     # ---------------------------------
     plt.figure()
-    plt.axis('equal')
 
     X = np.linspace(pf0.xmin, pf0.xmax, pf0.ncols)
     Y = np.linspace(pf0.ymin, pf0.ymax, pf0.nrows)
     Z = pf0.pgrid
-    plt.contourf(X, Y, Z, [0.0, 0.5, 1.0], cmap='tab10')
-    plt.contour(X, Y, Z, [0.0, 0.5, 1.0], colors=['black'])
-
-    plot_locations(plt, target, wells, obs)
-
-    plt.xlabel('UTM Easting [m]')
-    plt.ylabel('UTM Northing [m]')
-    plt.title('All Data', fontsize=14)
-    plt.grid(True)
-    plt.axis([Xmin, Xmax, Ymin, Ymax])
-
     [XX, YY] = np.meshgrid(X, Y)
     XX = np.reshape(XX[Z > 0.0], -1)
     YY = np.reshape(YY[Z > 0.0], -1)
 
-    # ---------------------------------
-    # PLOT: capture zone without the most influential singleton.
-    # ---------------------------------
-    plt.figure()
+    # Without the most influential singleton.
+    plt.subplot(1, 2, 1)
     plt.axis('equal')
 
     X = np.linspace(pf1.xmin, pf1.xmax, pf1.ncols)
@@ -443,10 +500,8 @@ def nagadan(
     plt.grid(True)
     plt.axis([Xmin, Xmax, Ymin, Ymax])
 
-    # ---------------------------------
-    # PLOT: capture zone without the most influential pair.
-    # ---------------------------------
-    plt.figure()
+    # Without the most influential pair.
+    plt.subplot(1, 2, 2)
     plt.axis('equal')
 
     X = np.linspace(pf2.xmin, pf2.xmax, pf2.ncols)
@@ -463,31 +518,41 @@ def nagadan(
     plt.title('Without Most Influential Pair', fontsize=14)
     plt.grid(True)
     plt.axis([Xmin, Xmax, Ymin, Ymax])
-    
-    # ---------------------------------
-    # PLOT: Cook's distance
-    # ---------------------------------
-    plt.figure()
-    cooks_d = ols_influence.cooks_distance[0]
-    plt.bar(range(nobs), cooks_d)
-    left, right = plt.xlim()
-    plt.plot([left, right], [1, 1], 'r', linewidth=3)
-
-    plt.xlabel('Observation index')
-    plt.ylabel("Cook's Distance")
-    plt.title("Cook's Distance", fontsize=14)
-    plt.grid(True)
 
     # ---------------------------------
-    # PLOT: the leverage (diagonal of the Hat matrix)
+    # PLOT: DFBETAS
     # ---------------------------------
     plt.figure()
+    dfbetas = ols_influence.dfbetas
+
+    for i in range(6):
+        plt.subplot(3, 2, i+1)
+        plt.bar(range(nobs), dfbetas[:, i])
+
+        threshold = 2/np.sqrt(nobs)
+        left, right = plt.xlim()
+        plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
+        plt.plot([left, right], [-threshold, -threshold], 'r', linewidth=3)        
+
+        plt.xlabel('Observation index')
+        plt.ylabel('DFBETAS')
+        plt.title('DFBETAS {0}'.format(chr(65+i)), fontsize=10)
+        plt.grid(True)
+
+    plt.tight_layout()
+
+    # ---------------------------------
+    # PLOT: the influential data diagnostics 
+    # ---------------------------------
+    plt.figure()
+
+    # Leverage (diagonal of the Hat matrix) bar plot.
+    plt.subplot(1, 2, 1)
     leverage = ols_influence.hat_matrix_diag
-
     plt.bar(range(nobs), leverage)
-    left, right = plt.xlim()
 
     threshold = 2*6/nobs
+    left, right = plt.xlim()
     plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
 
     plt.xlabel('Observation index')
@@ -495,16 +560,13 @@ def nagadan(
     plt.title('Leverage', fontsize=14)
     plt.grid(True)
 
-    # ---------------------------------
-    # PLOT: DFFITS
-    # ---------------------------------
-    plt.figure()
+    # DFFITS bar plot.
+    plt.subplot(1, 2 , 2)
     dffits = ols_influence.dffits[0]
-
     plt.bar(range(nobs), dffits)
-    left, right = plt.xlim()
 
     threshold = 2*np.sqrt(6/nobs)
+    left, right = plt.xlim()
     plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
     plt.plot([left, right], [-threshold, -threshold], 'r', linewidth=3)    
 
@@ -512,34 +574,8 @@ def nagadan(
     plt.ylabel('DFFITS')
     plt.title('DFFITS', fontsize=14)
     plt.grid(True)
-
-    # ---------------------------------
-    # PLOT: studentized residuals
-    # ---------------------------------
-    plt.figure()
-    resid = ols_influence.resid_studentized
-
-    plt.bar(range(nobs), resid)
-    left, right = plt.xlim()
-
-    threshold = 2
-    plt.plot([left, right], [threshold, threshold], 'r', linewidth=3)
-    plt.plot([left, right], [-threshold, -threshold], 'r', linewidth=3)    
-
-    plt.xlabel('Observation index')
-    plt.ylabel('Studentized Residuals')
-    plt.title('Studentized Residuals', fontsize=14)
-    plt.grid(True)
-
-    # ---------------------------------
-    # PLOT: normal probability plot for the studentized residuals
-    # ---------------------------------
-    plt.figure()
-    scipy.stats.probplot(resid, fit=True, plot=plt)
-    plt.ylabel('Studentized Residuals')
-    plt.title('Normal Probability Plot', fontsize=14)
-    plt.grid(True)
     
+    #------------------------
     plt.show()
 
 # ------------------------------------------------------------------------------
@@ -555,9 +591,9 @@ def plot_locations(plt, target, wells, obs):
     plt.plot(xtarget, ytarget, '*', markeredgecolor='k', markerfacecolor='w', markersize=12)
 
     # Plot the retained observations as fat + markers.
-    xo = [ob[0] for ob in obs]
-    yo = [ob[1] for ob in obs]
-    plt.plot(xo, yo, 'P', markeredgecolor='k', markerfacecolor='w')
+    xob = [ob[0] for ob in obs]
+    yob = [ob[1] for ob in obs]
+    plt.plot(xob, yob, 'P', markeredgecolor='k', markerfacecolor='w')
 
 
 # ------------------------------------------------------------------------------
@@ -626,7 +662,7 @@ def filter_obs(observations, wells, buffer):
         if flag:
             obs.append(ob)
         else:
-            log.info('observation removed: {0}'.format(ob))
+            log.info('observation removed: {0} too close to {1}'.format(ob, we))
 
     # Replace any duplicate observations with their weighted average.
     # Assume that the duplicate errors are statistically independent.
@@ -655,7 +691,6 @@ def filter_obs(observations, wells, buffer):
     log.info('active observations: {0}'.format(len(retained_obs)))
     for ob in retained_obs:
         log.info('     {0}'.format(ob))
-    log.info('')
 
     return retained_obs
 
@@ -669,13 +704,13 @@ def log_the_run(
         confined, tol, maxstep):
 
     log.info('\n')
-    log.info('================================================================')
-    log.info(' NN   N AAAAAA GGGGGG AAAAAA DDDDD  AAAAAA NN   N PPPPPP Y    Y ')
-    log.info(' N N  N A    A G      A    A D    D A    A N N  N P    P  Y  Y  ')
-    log.info(' N  N N AAAAAA G  GGG AAAAAA D    D AAAAAA N  N N PPPPPP   YY   ')
-    log.info(' N   NN A    A G    G A    A D    D A    A N   NN P        Y    ')
-    log.info(' N    N A    A GGGGGG A    A DDDDD  A    A N    N P        Y    ')
-    log.info('================================================================')
+    log.info('========================================================================')
+    log.info(' NN   N  AAAAAA  GGGGGG  AAAAAA  DDDDD   AAAAAA  NN   N  PPPPPP  Y    Y ')
+    log.info(' N N  N  A    A  G       A    A  D    D  A    A  N N  N  P    P   Y  Y  ')
+    log.info(' N  N N  AAAAAA  G  GGG  AAAAAA  D    D  AAAAAA  N  N N  PPPPPP    YY   ')
+    log.info(' N   NN  A    A  G    G  A    A  D    D  A    A  N   NN  P         Y    ')
+    log.info(' N    N  A    A  GGGGGG  A    A  DDDDD   A    A  N    N  P         Y    ')
+    log.info('========================================================================')
     log.info('Version: {0}'.format(VERSION))
     log.info('')
 
@@ -703,4 +738,4 @@ def log_the_run(
     for ob in observations:
         log.info('    {0}'.format(ob))
 
-    log.info('\n')
+    log.info('')
