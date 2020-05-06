@@ -13,7 +13,7 @@ Authors
 
 Version
 -------
-    02 May 2020
+    06 May 2020
 """
 
 PROJECTNAME = 'Carlos example'
@@ -28,12 +28,12 @@ POROSITY = 0.25
 THICKNESS = 25
 
 BUFFER = 100
-SPACING = 10
-UMBRA = 20
+SPACING = 1
+UMBRA = 2
 
 CONFINED = True
 TOL = 1
-MAXSTEP = 20
+MAXSTEP = 5
 
 WELLS = [(322579, 5093431, 0.2, 179)]
 

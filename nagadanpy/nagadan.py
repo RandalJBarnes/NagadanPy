@@ -249,7 +249,8 @@ def nagadan(
     ols_influence = smso.OLSInfluence(ols_results)
 
     log.info('\n')
-    log.info(ols_results.summary(xname = ['A', 'B', 'C', 'D', 'E', 'F']))
+    log.info(ols_results.summary(
+        xname = ['A', 'B', 'C', 'D', 'E', 'F'], yname = 'scaled potential'))
     log.info('\n')
     log.info(ols_influence.summary_frame())
     log.info('\n')
