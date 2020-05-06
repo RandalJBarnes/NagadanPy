@@ -63,6 +63,7 @@ Version
 
 import logging
 import matplotlib.pyplot as plt
+import io
 import numpy as np
 import scipy
 import statsmodels.stats.outliers_influence as smso
@@ -740,3 +741,95 @@ def log_the_run(
         log.info('    {0}'.format(ob))
 
     log.info('')
+
+
+# ------------------------------------------------------------------------------
+def log_summary_statistics(values, names, formats, title):
+    """
+    Logs a simple summary statistics table for the data in values.
+
+    Arguments
+    ---------
+
+
+    """
+
+    # Compute sizes of stuff.
+    nvar = len(values[0])
+    widths = [len('{0:{fmt}}'.format(1, fmt=formats[j])) for j in range(nvar)]
+    total_width = 5 + sum(widths)
+
+    # Compute the summary statistics.
+    vcnt = [[] for j in range(nvar)]
+    vmin = [[] for j in range(nvar)]
+    vmed = [[] for j in range(nvar)]
+    vmax = [[] for j in range(nvar)]
+    vavg = [[] for j in range(nvar)]
+    vstd = [[] for j in range(nvar)]
+
+    for j in range(nvar):
+        x = np.array([v[j] for v in values])
+        x = x[~numpy.isnan(x)]
+
+        vcnt[j] = len(x)
+        vmin[j] = np.min(x)
+        vmed[j] = np.median(x)
+        vmax[j] = np.max(x)
+        vavg[j] = np.mean(x)
+        vstd[j] = np.std(x)
+
+    # Write out the header.
+    print('{0:^{w}s}'.format(title, w=total_width))
+    print('=' * total_width)
+
+    buf = io.StringIO()
+    buf.write('     ')
+    for j in range(nvar):
+        buf.write('{0:>{w}s}'.format(names[j], w=widths[j]))
+    print(buf.getvalue())
+    print('-' * total_width)
+
+    # Write out the cnt  
+    buf = io.StringIO()
+    buf.write('cnt: ')
+    for j in range(nvar):
+        buf.write('{0:>{w}d}'.format(vcnt[j], w=widths[j]))
+    print(buf.getvalue())
+
+    # Write out the min
+    buf = io.StringIO()
+    buf.write('min: ')
+    for j in range(nvar):
+        buf.write('{0:{fmt}}'.format(vmin[j], fmt=formats[j]))
+    print(buf.getvalue())
+
+    # Write out the med
+    buf = io.StringIO()
+    buf.write('med: ')
+    for j in range(nvar):
+        buf.write('{0:{fmt}}'.format(vmed[j], fmt=formats[j]))
+    print(buf.getvalue())
+
+    # Write out the max 
+    buf = io.StringIO()
+    buf.write('max: ')
+    for j in range(nvar):
+        buf.write('{0:{fmt}}'.format(vmax[j], fmt=formats[j]))
+    print(buf.getvalue())
+
+    # Write out the avg
+    buf = io.StringIO()
+    buf.write('avg: ')
+    for j in range(nvar):
+        buf.write('{0:{fmt}}'.format(vavg[j], fmt=formats[j]))
+    print(buf.getvalue())
+
+    # Write out the std
+    buf = io.StringIO()
+    buf.write('std: ')
+    for i in range(nvar):
+        buf.write('{0:{fmt}}'.format(vstd[j], fmt=formats[j]))
+    print(buf.getvalue())
+
+    # Write out the footer.
+    print('=' * total_width)
