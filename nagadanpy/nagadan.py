@@ -236,6 +236,11 @@ def nagadan(
     nobs = len(obs)
     assert(nobs > 6)
 
+    buf = summary_statistics(obs, ['Easting', 'Northing', 'Head', 'Std'], 
+        ['12.2f', '12.2f', '10.2f', '10.2f'], 'Observations Summary Statistics')
+    log.info('\n')
+    log.info(buf.getvalue())
+
     # Set the target.
     xtarget, ytarget, rtarget = wells[target][0:3]
 
@@ -381,7 +386,6 @@ def nagadan(
     plt.ylabel('UTM Northing [m]')
     plt.title('Studentized Residuals', fontsize=14)
     plt.grid(True)
-
 
     # ---------------------------------
     # PLOT: studentized residuals
@@ -606,8 +610,8 @@ def filter_obs(observations, wells, buffer):
     (i.e. obs at the same loction) are average using a minimum
     variance weighted average.
 
-    Parameters
-    ----------
+    Arguments
+    ---------
     observations : list
         A list of observation tuples where the first two fields
         are x and y:
@@ -744,14 +748,33 @@ def log_the_run(
 
 
 # ------------------------------------------------------------------------------
-def log_summary_statistics(values, names, formats, title):
+def summary_statistics(values, names, formats, title):
     """
-    Logs a simple summary statistics table for the data in values.
+    Creates a simple summary statistics table for the data in values.
 
     Arguments
     ---------
+    values : array-like
+        The array of data values.
 
+    names: list of strings
+        The list of variable names.
 
+    formats : list of strings
+        The list of format strings.
+
+    title : string
+        The title string.
+
+    Returns
+    -------
+    buf : io.StringIO
+        Use buf.getvalue() to access the string.
+
+    Usage
+    -----
+    buf = summary_statistics(data, ['X', 'Y', 'Z'], ['8.2f', '6.3f', '9.4e'], 'This is a TITLE')    
+    
     """
 
     # Compute sizes of stuff.
@@ -769,7 +792,7 @@ def log_summary_statistics(values, names, formats, title):
 
     for j in range(nvar):
         x = np.array([v[j] for v in values])
-        x = x[~numpy.isnan(x)]
+        x = x[~np.isnan(x)]
 
         vcnt[j] = len(x)
         vmin[j] = np.min(x)
@@ -778,58 +801,60 @@ def log_summary_statistics(values, names, formats, title):
         vavg[j] = np.mean(x)
         vstd[j] = np.std(x)
 
-    # Write out the header.
-    print('{0:^{w}s}'.format(title, w=total_width))
-    print('=' * total_width)
-
+    # Initialize.
     buf = io.StringIO()
+
+    # Write out the header.
+    buf.write('{0:^{w}s}'.format(title, w=total_width))
+    buf.write('\n')    
+    buf.write('=' * total_width)
+    buf.write('\n')    
+
     buf.write('     ')
     for j in range(nvar):
         buf.write('{0:>{w}s}'.format(names[j], w=widths[j]))
-    print(buf.getvalue())
-    print('-' * total_width)
+    buf.write('\n')
+    buf.write('-' * total_width)
+    buf.write('\n')
 
     # Write out the cnt  
-    buf = io.StringIO()
     buf.write('cnt: ')
     for j in range(nvar):
         buf.write('{0:>{w}d}'.format(vcnt[j], w=widths[j]))
-    print(buf.getvalue())
+    buf.write('\n')
 
     # Write out the min
-    buf = io.StringIO()
     buf.write('min: ')
     for j in range(nvar):
         buf.write('{0:{fmt}}'.format(vmin[j], fmt=formats[j]))
-    print(buf.getvalue())
+    buf.write('\n')
 
     # Write out the med
-    buf = io.StringIO()
     buf.write('med: ')
     for j in range(nvar):
         buf.write('{0:{fmt}}'.format(vmed[j], fmt=formats[j]))
-    print(buf.getvalue())
+    buf.write('\n')
 
     # Write out the max 
-    buf = io.StringIO()
     buf.write('max: ')
     for j in range(nvar):
         buf.write('{0:{fmt}}'.format(vmax[j], fmt=formats[j]))
-    print(buf.getvalue())
+    buf.write('\n')
 
     # Write out the avg
-    buf = io.StringIO()
     buf.write('avg: ')
     for j in range(nvar):
         buf.write('{0:{fmt}}'.format(vavg[j], fmt=formats[j]))
-    print(buf.getvalue())
+    buf.write('\n')
 
     # Write out the std
-    buf = io.StringIO()
     buf.write('std: ')
-    for i in range(nvar):
+    for j in range(nvar):
         buf.write('{0:{fmt}}'.format(vstd[j], fmt=formats[j]))
-    print(buf.getvalue())
+    buf.write('\n')
 
     # Write out the footer.
-    print('=' * total_width)
+    buf.write('=' * total_width)
+    buf.write('\n')
+
+    return buf
