@@ -236,8 +236,14 @@ def nagadan(
     nobs = len(obs)
     assert(nobs > 6)
 
+    # Log summary statistics on the wells and the active observations.
+    buf = summary_statistics(wells, ['Easting', 'Northing', 'Radius', 'Discharge'], 
+        ['12.2f', '12.2f', '12.3f', '12.2f'], 'Wells')
+    log.info('\n')
+    log.info(buf.getvalue())
+
     buf = summary_statistics(obs, ['Easting', 'Northing', 'Head', 'Std'], 
-        ['12.2f', '12.2f', '10.2f', '10.2f'], 'Observations Summary Statistics')
+        ['12.2f', '12.2f', '10.2f', '10.2f'], 'Active Observations')
     log.info('\n')
     log.info(buf.getvalue())
 
