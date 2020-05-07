@@ -48,23 +48,32 @@ def compute_boomerang(WA, Wb):
     -------
     (kldiv_one, kldiv_two, kldiv_three) : triple of lists of tuples
 
-        kldiv_one is a list of tuples. The tuples result from a leave-one-out
-        boomerang analysis. Each tuple takes the form
+        kldiv_one is a list of tuples. The tuples result from a 
+            leave-one-out boomerang analysis. Each tuple takes the form
 
             (kldiv, i)
 
-        where i is the index (row in the obs array) of the ignored
-        observation, and kl_div is the associate Kullback-Leibler
-        Divergence. len(kldiv_one) = nobs.
+            where i is the index (row in the obs array) of the ignored
+            observation, and kl_div is the associate Kullback-Leibler
+            Divergence. len(kldiv_one) = nobs.
 
-        kldiv_two is a list of tuples. The tuples result from a leave-two-out
-        boomerang analysis. Each tuple takes the form
+        kldiv_two is a list of tuples. The tuples result from a 
+            leave-two-out boomerang analysis. Each tuple takes the form
 
             (kldiv, i, j)
 
-        where i and j are the indices (rows in the obs array) of the removed
-        observations, and  kl_div is the associate Kullback-Leibler Divergence.
-        len(kldiv_two) = nobs*(nobs-1)/2.
+            where i and j are the indices (rows in the obs array) of the 
+            removed observations, and  kl_div is the associate Kullback-
+            Leibler Divergence. len(kldiv_two) = nobs*(nobs-1)/2.
+
+        kldiv_three is a list of tuples. The tuples result from a 
+            leave-three-out boomerang analysis. Each tuple takes the form
+
+            (kldiv, i, j, k)
+
+            where i,  j, and k  are the indices (rows in the obs array) of
+            the removed observations, and  kl_div is the associate Kullback-
+            Leibler Divergence. len(kldiv_three) = nobs*(nobs-1)*(nobs-2)/6.
 
     Notes
     -----
@@ -100,7 +109,15 @@ def compute_boomerang(WA, Wb):
             div = compute_kldiv(mu_f, cov_f, cov_f_inv, mu_g, cov_g)
             kldiv_two.append((div, i, j))
 
-    return (kldiv_one, kldiv_two)
+    kldiv_three = []
+    for i in range(nobs-2):
+        for j in range(i+1, nobs-1):
+            for k in range(j+1, nobs):
+                mu_g, cov_g = Model.compute_fit(np.delete(WA, [i, j, k], 0), np.delete(Wb, [i, j, k], 0))
+                div = compute_kldiv(mu_f, cov_f, cov_f_inv, mu_g, cov_g)
+                kldiv_three.append((div, i, j, k))
+
+    return (kldiv_one, kldiv_two, kldiv_three)
 
 
 # -----------------------------------------------------------------------------
